@@ -2,1375 +2,199 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Zuul</title>
+<title>Zuul.2.0 testing</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 :root {
-    --bg-dark: #1c1712;
-    --parchment: #efe2c4;
-    --parchment-2: #e3d2ae;
-    --ink: #2c2419;
-    --ink-soft: #5b4b35;
-    --accent: #6c3f1f;
-    --accent-2: #8c6239;
-    --panel-shadow: 0 10px 24px rgba(0,0,0,0.35);
-}
-
-* { box-sizing: border-box; }
-
-body {
-    margin: 0;
-    font-family: Georgia, "Times New Roman", serif;
-    background:
-        radial-gradient(circle at top left, rgba(255,255,255,0.05), transparent 28%),
-        linear-gradient(180deg, #241b13 0%, #1a1410 100%);
-    color: var(--ink);
-}
-
-#app {
-    display: flex;
-    height: 100vh;
-    width: 100vw;
-    overflow: hidden;
-}
-
-#mapPanel {
-    flex: 1;
-    overflow: auto;
-    background:
-        linear-gradient(180deg, rgba(0,0,0,0.10), rgba(0,0,0,0.20)),
-        #2a2118;
-    padding: 20px;
-    cursor: grab;
-}
-#mapPanel.dragging {
-    cursor: grabbing;
-    user-select: none;
-}
-
-#zoomStage {
-    position: relative;
-    width: 4000px;
-    height: 5000px;
-    margin: 0 auto;
-}
-#mapWrap {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 4000px;
-    height: 5000px;
-    transform-origin: top left;
-    box-shadow: 0 18px 36px rgba(0,0,0,0.45);
-    border: 2px solid rgba(255,255,255,0.10);
-}
-#mapImg {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 4000px;
-    height: 5000px;
-    display: block;
-    user-select: none;
-    pointer-events: none;
-}
-#territorySvg {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 4000px;
-    height: 5000px;
-    pointer-events: none;
-}
-.territory-label {
-    position: absolute;
-    transform: translate(-50%, -50%);
-    background: rgba(239, 226, 196, 0.88);
-    border: 1px solid rgba(70, 54, 35, 0.55);
-    border-radius: 10px;
-    padding: 5px 10px;
-    font-size: 12px;
-    font-weight: 700;
-    text-align: center;
-    pointer-events: none;
-    white-space: nowrap;
-    box-shadow: 0 3px 8px rgba(0,0,0,0.20);
-}
-
-.poi {
-    position: absolute;
-    transform: translate(-50%, -50%);
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border: 2px solid #221810;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.55);
-    z-index: 10;
-    transition: transform 0.08s ease, box-shadow 0.12s ease;
-}
-.poi:hover, .poi.selected {
-    outline: 3px solid rgba(255,255,255,0.92);
-    z-index: 20;
-    box-shadow: 0 0 0 4px rgba(255,255,255,0.14), 0 6px 14px rgba(0,0,0,0.65);
-}
-.poi:hover {
-    transform: translate(-50%, -50%) scale(1.04);
-}
-.poi-inner {
-    width: 26px;
-    height: 26px;
-    background: #f5efe2;
-    border: 1px solid #2d2218;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-}
-.poi-inner img {
-    max-width: 21px;
-    max-height: 21px;
-}
-
-#infoPanel {
-    width: 400px;
-    max-width: 42vw;
-    min-width: 320px;
-    background:
-        linear-gradient(180deg, rgba(255,255,255,0.18), rgba(0,0,0,0.03)),
-        linear-gradient(180deg, var(--parchment) 0%, var(--parchment-2) 100%);
-    border-left: 1px solid rgba(65, 48, 29, 0.55);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    box-shadow: -6px 0 18px rgba(0,0,0,0.18);
-    transition: width 0.22s ease, min-width 0.22s ease, max-width 0.22s ease, opacity 0.18s ease;
-}
-#infoPanel.collapsed {
-    width: 0 !important;
-    min-width: 0 !important;
-    max-width: 0 !important;
-    border-left: none;
-    opacity: 0;
-}
-
-#detailsPane {
-    flex: 1 1 auto;
-    min-height: 0;
-    padding: 16px 18px 16px 18px;
-    overflow-y: auto;
-}
-#detailsPane h1 {
-    font-size: 24px;
-    margin: 0 0 10px 0;
-    color: #2f2317;
-}
-#detailsPane .placeholder {
-    color: #6a5a43;
-    font-style: italic;
-}
-#description {
-    line-height: 1.45;
-    font-size: 14px;
-}
-#description ul { padding-left: 20px; }
-#description p:first-child { margin-top: 0; }
-
-.player-title {
-    font-size: 13px;
-    font-weight: bold;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--accent-2);
-    margin-bottom: 7px;
-}
-.poi-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 8px;
-}
-.poi-header-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: 1px solid rgba(44, 33, 20, 0.85);
-    background: rgba(255,255,255,0.55);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    flex: 0 0 auto;
-}
-.poi-header-icon img {
-    width: 22px;
-    height: 22px;
-    object-fit: contain;
-}
-.badge-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin: 10px 0 14px 0;
-}
-.badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 10px;
-    border-radius: 999px;
-    border: 1px solid rgba(60, 44, 26, 0.35);
-    background: rgba(255,255,255,0.34);
-    font-size: 12px;
-    color: #3f3122;
-}
-.badge img {
-    width: 16px;
-    height: 16px;
-    object-fit: contain;
-}
-.faction-chip-dot {
-    font-size: 14px;
-    line-height: 1;
-}
-
-#poiBrowser {
-    flex: 0 0 34%;
-    max-height: 38%;
-    min-height: 245px;
-    border-bottom: 1px solid rgba(83, 63, 40, 0.35);
-    background: rgba(94, 66, 36, 0.07);
-    padding: 12px 12px 10px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
-}
-.browser-topbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.browser-title {
-    font-weight: bold;
-    font-size: 13px;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--accent);
-}
-#poiCount {
-    font-size: 11px;
-    color: #6a573f;
-}
-#poiSearch {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 8px 9px;
-    border: 1px solid #ab9576;
-    border-radius: 8px;
-    font-size: 12px;
-    background: rgba(255,250,241,0.92);
-    color: var(--ink);
-    font-family: inherit;
-}
-.filter-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 6px;
-    position: relative;
-}
-.filter-dropdown {
-    position: relative;
-}
-.filter-button {
-    width: 100%;
-    padding: 7px 8px;
-    border: 1px solid #ab9576;
-    border-radius: 8px;
-    font-size: 12px;
-    background: rgba(255,250,241,0.92);
-    color: var(--ink);
-    font-family: inherit;
-    text-align: left;
-    cursor: pointer;
-}
-.filter-button::after {
-    content: "▾";
-    float: right;
-    opacity: 0.75;
-}
-.filter-menu {
-    display: none;
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    min-width: 210px;
-    max-height: 300px;
-    overflow-y: auto;
-    z-index: 300;
-    background: rgba(255,250,241,0.98);
-    border: 1px solid #ab9576;
-    border-radius: 10px;
-    box-shadow: 0 8px 18px rgba(0,0,0,0.28);
-    padding: 7px;
-}
-.filter-dropdown.open .filter-menu {
-    display: block;
-}
-.filter-dropdown:last-child .filter-menu {
-    right: 0;
-    left: auto;
-}
-.filter-menu-actions {
-    display: flex;
-    gap: 5px;
-    margin-bottom: 6px;
-}
-.filter-menu-actions button, .filter-close {
-    flex: 1;
-    border: 1px solid rgba(109, 85, 58, 0.35);
-    border-radius: 7px;
-    background: rgba(239,226,196,0.85);
-    color: #3f3122;
-    font-family: inherit;
-    font-size: 11px;
-    padding: 4px 5px;
-    cursor: pointer;
-}
-.filter-option {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 3px;
-    font-size: 12px;
-    cursor: pointer;
-    user-select: none;
-}
-.filter-option input {
-    margin: 0;
-}
-.filter-close {
-    width: 100%;
-    margin-top: 6px;
-}
-.party-location {
-    position: absolute;
-    transform: translate(-50%, -50%);
-    width: 46px;
-    height: 46px;
-    border-radius: 50%;
-    border: 4px solid #00c853;
-    box-shadow: 0 0 0 2px rgba(15,45,25,0.75), 0 0 12px rgba(0,200,83,0.65);
-    background: transparent;
-    z-index: 2;
-    pointer-events: none;
-}
-
-.pc-quest {
-    position: absolute;
-    transform: translate(-50%, -100%);
-    width: 40px;
-    height: 52px;
-    z-index: 12;
-    cursor: pointer;
-    border: 0;
-    background: transparent;
-    padding: 0;
-}
-.pc-quest-pin {
-    position: relative;
-    display: block;
-    width: 40px;
-    height: 52px;
-    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.55));
-}
-.pc-quest-shape {
-    position: absolute;
-    left: 50%;
-    top: 2px;
-    width: 34px;
-    height: 42px;
-    transform: translateX(-50%);
-    clip-path: polygon(
-        50% 100%,
-        16% 58%,
-        8% 36%,
-        13% 19%,
-        27% 7%,
-        50% 2%,
-        73% 7%,
-        87% 19%,
-        92% 36%,
-        84% 58%
-    );
-    border: 0;
-    background: #6f4cc3;
-}
-.pc-quest-shape::after {
-    content: "";
-    position: absolute;
-    inset: 2px;
-    clip-path: inherit;
-    border: 2px solid #221810;
-    pointer-events: none;
-}
-.pc-quest-icon {
-    position: absolute;
-    left: 50%;
-    top: 8px;
-    transform: translateX(-50%);
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: #f5efe2;
-    border: 1px solid #2d2218;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    color: #2d2218;
-    font-size: 10px;
-    font-weight: bold;
-}
-.pc-quest-icon img {
-    max-width: 18px;
-    max-height: 18px;
-    object-fit: contain;
-}
-.pc-quest:hover, .pc-quest.selected {
-    outline: 3px solid rgba(255,255,255,0.92);
-    outline-offset: 2px;
-}
-.poi-list-spacer {
-    height: 8px;
-}
-.poi-list-header {
-    padding: 6px 8px 5px 8px;
-    margin: 3px 0 5px 0;
-    border-top: 1px solid rgba(109, 85, 58, 0.32);
-    color: var(--accent);
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    font-size: 12px;
-}
-#poiList {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow-y: auto;
-    border: 1px solid rgba(140, 117, 82, 0.55);
-    border-radius: 10px;
-    background: rgba(255,251,244,0.42);
-    padding: 6px;
-}
-.poi-list-item {
-    display: grid;
-    grid-template-columns: 28px 1fr;
-    gap: 7px;
-    align-items: center;
-    padding: 6px 7px;
-    border: 1px solid transparent;
-    border-radius: 8px;
-    cursor: pointer;
-    margin-bottom: 4px;
-    background: rgba(255,255,255,0.38);
-    transition: background 0.12s ease, border-color 0.12s ease, transform 0.08s ease;
-}
-.poi-list-item:last-child { margin-bottom: 0; }
-.poi-list-item:hover {
-    background: rgba(255,255,255,0.82);
-    border-color: rgba(111, 77, 43, 0.30);
-    transform: translateY(-1px);
-}
-.poi-list-item.active {
-    background: rgba(224, 212, 186, 0.95);
-    border-color: rgba(111, 77, 43, 0.58);
-}
-.poi-list-icon {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    border: 2px solid #2a1c12;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.20);
-    flex: 0 0 28px;
-}
-.poi-list-icon-inner {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.92);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid #2a1c12;
-    overflow: hidden;
-}
-.poi-list-icon-inner img {
-    width: 15px !important;
-    height: 15px !important;
-    max-width: 15px !important;
-    max-height: 15px !important;
-    object-fit: contain;
-    display: block;
-}
-.poi-list-text { min-width: 0; }
-.poi-list-title {
-    display: block;
-    font-weight: 700;
-    color: #33271b;
-    margin-bottom: 3px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.poi-list-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    align-items: center;
-    color: #5d4d38;
-    font-size: 11px;
-}
-.list-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    border-radius: 999px;
-    padding: 2px 6px;
-    background: rgba(255,255,255,0.55);
-    border: 1px solid rgba(109, 85, 58, 0.22);
-    line-height: 1.15;
-}
-.list-tag img {
-    width: 12px !important;
-    height: 12px !important;
-    max-width: 12px !important;
-    max-height: 12px !important;
-    object-fit: contain;
-    display: inline-block;
-    vertical-align: middle;
-}
-
-#controls {
-    position: fixed;
-    left: 16px;
-    top: 16px;
-    background: rgba(239,226,196,0.94);
-    border: 1px solid rgba(60,44,26,0.45);
-    border-radius: 12px;
-    padding: 9px 10px;
-    display: flex;
-    gap: 6px;
-    align-items: center;
-    z-index: 100;
-    box-shadow: var(--panel-shadow);
-}
-#controls button, #toggleSidebarButton, #toggleLegendButton {
-    border: 1px solid rgba(60,44,26,0.45);
-    background: linear-gradient(180deg, #fff7ea 0%, #ead9b7 100%);
-    border-radius: 8px;
-    padding: 6px 10px;
-    cursor: pointer;
-    font-weight: bold;
-    color: #3a2a1c;
-    font-family: inherit;
-}
-#controls button:hover, #toggleSidebarButton:hover, #toggleLegendButton:hover {
-    background: linear-gradient(180deg, #fffaf2 0%, #efdfbf 100%);
-}
-#zoomLabel {
-    min-width: 48px;
-    text-align: center;
-    font-size: 12px;
-    color: #4e3d2b;
-}
-#bottomControls {
-    position: fixed;
-    right: 16px;
-    bottom: 16px;
-    z-index: 110;
-    display: flex;
-    gap: 8px;
-    align-items: center;
-}
-#toggleSidebarButton, #toggleLegendButton {
-    box-shadow: var(--panel-shadow);
-}
-
-.legend {
-    position: fixed;
-    left: 16px;
-    bottom: 16px;
-    background: rgba(239,226,196,0.94);
-    border: 1px solid rgba(60,44,26,0.42);
-    border-radius: 12px;
-    padding: 10px 12px;
-    font-size: 12px;
-    max-width: 490px;
-    z-index: 100;
-    box-shadow: var(--panel-shadow);
-}
-.legend.hidden {
-    display: none;
-}
-.legend-title {
-    font-weight: bold;
-    margin: 0 0 4px 0;
-    color: var(--accent);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    font-size: 12px;
-}
-.legend-grid {
-    display: grid;
-    grid-template-columns: repeat(3, max-content);
-    column-gap: 14px;
-    row-gap: 5px;
-    margin-bottom: 8px;
-}
-.legend-factions {
-    display: grid;
-    grid-template-columns: repeat(4, max-content);
-    column-gap: 14px;
-    row-gap: 5px;
-}
-.legend-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    white-space: nowrap;
-    color: #453524;
-}
-.legend-item img {
-    width: 18px;
-    height: 18px;
-    object-fit: contain;
-}
-.color-dot {
-    font-size: 16px;
-    line-height: 1;
-}
-
-@media (max-width: 1100px) {
-    #infoPanel {
-        width: 340px;
-        max-width: 48vw;
-    }
-    .legend {
-        max-width: 360px;
-    }
-}
+  --bg-dark:#1c1712; --parchment:#efe2c4; --parchment-2:#e3d2ae; --ink:#2c2419;
+  --accent:#6c3f1f; --panel-shadow:0 10px 24px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Georgia,"Times New Roman",serif;background:linear-gradient(180deg,#241b13,#1a1410);color:var(--ink)}
+#app{display:flex;height:100vh;width:100vw;overflow:hidden}
+#mapPanel{flex:1;overflow:auto;background:#2a2118;padding:20px;cursor:grab}
+#mapPanel.dragging{cursor:grabbing;user-select:none}
+#zoomStage{position:relative;margin:0 auto}
+#mapWrap{position:absolute;left:0;top:0;transform-origin:top left;box-shadow:0 18px 36px rgba(0,0,0,.45);border:2px solid rgba(255,255,255,.10)}
+#mapImg{position:absolute;left:0;top:0;width:100%;height:100%;display:block;user-select:none;pointer-events:none}
+#territorySvg{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
+.territory-label{position:absolute;transform:translate(-50%,-50%);background:rgba(239,226,196,.88);border:1px solid rgba(70,54,35,.55);border-radius:10px;padding:5px 10px;font-size:12px;font-weight:700;text-align:center;pointer-events:none;white-space:nowrap;box-shadow:0 3px 8px rgba(0,0,0,.2)}
+.poi{position:absolute;transform:translate(-50%,-50%);width:36px;height:36px;border-radius:50%;border:2px solid #24180f;z-index:10;cursor:pointer;box-shadow:0 3px 8px rgba(0,0,0,.45)}
+.poi.selected,.pc-quest.selected{outline:3px solid rgba(255,255,255,.95);outline-offset:2px}
+.poi-inner{display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:rgba(255,255,255,.88);border-radius:50%;overflow:hidden}
+.poi-inner img{max-width:21px;max-height:21px}
+.linked-map-badge{position:absolute;right:-7px;top:-7px;width:17px;height:17px;border-radius:50%;border:1px solid #2d2218;background:#f7d56a;color:#2d2218;font-size:12px;line-height:15px;text-align:center;font-weight:bold;box-shadow:0 2px 5px rgba(0,0,0,.45);pointer-events:none}
+.party-location{position:absolute;transform:translate(-50%,-50%);width:46px;height:46px;border-radius:50%;border:4px solid #00c853;box-shadow:0 0 0 2px rgba(15,45,25,.75),0 0 12px rgba(0,200,83,.65);background:transparent;z-index:2;pointer-events:none}
+.pc-quest{position:absolute;transform:translate(-50%,-100%);width:40px;height:52px;z-index:12;cursor:pointer;border:0;background:transparent;padding:0}
+.pc-quest-pin{position:relative;display:block;width:40px;height:52px;filter:drop-shadow(0 4px 8px rgba(0,0,0,.55))}
+.pc-quest-shape{position:absolute;left:50%;top:2px;width:34px;height:42px;transform:translateX(-50%);clip-path:polygon(50% 100%,16% 58%,8% 36%,13% 19%,27% 7%,50% 2%,73% 7%,87% 19%,92% 36%,84% 58%);background:#6f4cc3}
+.pc-quest-icon{position:absolute;left:50%;top:8px;transform:translateX(-50%);width:24px;height:24px;border-radius:50%;background:#f5efe2;border:1px solid #2d2218;display:flex;align-items:center;justify-content:center;overflow:hidden;color:#2d2218;font-size:10px;font-weight:bold}
+.pc-quest-icon img{max-width:18px;max-height:18px;object-fit:contain}
+#infoPanel{width:390px;min-width:330px;max-width:44vw;background:linear-gradient(180deg,var(--parchment),var(--parchment-2));border-left:2px solid rgba(60,44,26,.45);box-shadow:var(--panel-shadow);display:flex;flex-direction:column;z-index:80}
+#infoPanel.collapsed{display:none}
+#poiBrowser{flex:0 0 34%;max-height:38%;min-height:245px;border-bottom:1px solid rgba(83,63,40,.35);background:rgba(94,66,36,.07);padding:12px;display:flex;flex-direction:column;gap:7px}
+#detailsPane{flex:1 1 auto;min-height:0;padding:16px 18px;overflow-y:auto}
+.player-title{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#745c3d;font-weight:bold;margin-bottom:8px}
+#detailsPane h1{font-size:24px;margin:0 0 10px;color:#2f2317}
+.browser-topbar{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.browser-title{font-weight:bold;color:#3f3122}
+#poiCount{font-size:11px;color:#6d563a}
+#poiSearch,#mapSelector{width:100%;padding:7px 8px;border:1px solid #ab9576;border-radius:8px;background:rgba(255,250,241,.92);color:var(--ink);font-family:inherit}
+.map-selector-row{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center}
+#upLayerButton{
+  border:1px solid rgba(60,44,26,.45);
+  background:linear-gradient(180deg,#fff7ea,#ead9b7);
+  border-radius:8px;
+  padding:7px 9px;
+  cursor:pointer;
+  font-weight:bold;
+  color:#3a2a1c;
+  font-family:inherit;
+  white-space:nowrap;
+}
+#upLayerButton:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+}
+.filter-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;position:relative}
+.filter-dropdown{position:relative}
+.filter-button{width:100%;padding:7px 8px;border:1px solid #ab9576;border-radius:8px;font-size:12px;background:rgba(255,250,241,.92);color:var(--ink);font-family:inherit;text-align:left;cursor:pointer}
+.filter-button::after{content:"▾";float:right;opacity:.75}
+.filter-menu{display:none;position:absolute;top:calc(100% + 4px);left:0;min-width:210px;max-height:300px;overflow-y:auto;z-index:300;background:rgba(255,250,241,.98);border:1px solid #ab9576;border-radius:10px;box-shadow:0 8px 18px rgba(0,0,0,.28);padding:7px}
+.filter-dropdown.open .filter-menu{display:block}
+.filter-dropdown:last-child .filter-menu{right:0;left:auto}
+.filter-menu-actions{display:flex;gap:5px;margin-bottom:6px}
+.filter-menu-actions button,.filter-close{flex:1;border:1px solid rgba(109,85,58,.35);border-radius:7px;background:rgba(239,226,196,.85);color:#3f3122;font-family:inherit;font-size:11px;padding:4px 5px;cursor:pointer}
+.filter-option{display:flex;align-items:center;gap:6px;padding:4px 3px;font-size:12px;cursor:pointer;user-select:none}
+.filter-close{width:100%;margin-top:6px}
+#poiList{flex:1 1 auto;min-height:0;overflow-y:auto;border:1px solid rgba(140,117,82,.55);border-radius:10px;background:rgba(255,251,244,.42);padding:6px}
+.poi-list-item{display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:center;padding:7px;border-radius:9px;cursor:pointer}
+.poi-list-item:hover,.poi-list-item.active{background:rgba(108,63,31,.16)}
+.poi-list-icon{width:30px;height:30px;border-radius:50%;border:1px solid rgba(40,30,20,.7);display:flex;align-items:center;justify-content:center}
+.poi-list-icon-inner{width:22px;height:22px;background:rgba(255,255,255,.86);border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.poi-list-main-img{max-width:18px;max-height:18px}
+.poi-list-title{font-weight:bold;font-size:13px}
+.poi-list-meta{display:flex;gap:4px;flex-wrap:wrap;margin-top:2px}
+.list-tag,.badge{font-size:11px;background:rgba(255,255,255,.48);border:1px solid rgba(109,85,58,.25);border-radius:999px;padding:2px 6px;display:inline-flex;align-items:center;gap:4px}
+.poi-list-spacer{height:8px}
+.poi-list-header{padding:6px 8px 5px;margin:3px 0 5px;border-top:1px solid rgba(109,85,58,.32);color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:12px}
+.badge-row{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px;align-items:center}
+.badge-row button{
+  border:1px solid rgba(60,44,26,.45);
+  background:linear-gradient(180deg,#fff7ea,#ead9b7);
+  border-radius:999px;
+  padding:3px 8px;
+  cursor:pointer;
+  font-weight:bold;
+  color:#3a2a1c;
+  font-family:inherit;
+  font-size:11px;
+}
+.poi-header{display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:center;margin-bottom:6px}
+.poi-header-icon{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.72);border:1px solid rgba(55,42,28,.35);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.poi-header-icon img{max-width:26px;max-height:26px}
+.badge img{
+  width:16px;
+  height:16px;
+  max-width:16px;
+  max-height:16px;
+  object-fit:contain;
+  vertical-align:middle;
+}
+.faction-chip-dot,.color-dot{font-size:15px;line-height:1}
+#controls{position:fixed;left:16px;top:16px;display:flex;align-items:center;gap:6px;background:rgba(239,226,196,.92);border:1px solid rgba(60,44,26,.42);border-radius:10px;padding:8px;z-index:120;box-shadow:var(--panel-shadow)}
+#controls button,#toggleSidebarButton,#toggleLegendButton{border:1px solid rgba(60,44,26,.45);background:linear-gradient(180deg,#fff7ea,#ead9b7);border-radius:8px;padding:6px 10px;cursor:pointer;font-weight:bold;color:#3a2a1c;font-family:inherit}
+#bottomControls{position:fixed;right:16px;bottom:16px;z-index:110;display:flex;gap:8px;align-items:center}
+.legend{position:fixed;left:16px;bottom:16px;background:rgba(239,226,196,.94);border:1px solid rgba(60,44,26,.42);border-radius:12px;padding:10px 12px;font-size:12px;max-width:520px;z-index:100;box-shadow:var(--panel-shadow)}
+.legend.hidden{display:none}
+.legend-title{font-weight:bold;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);font-size:11px;margin-bottom:5px}
+.legend-grid,.legend-factions{display:flex;flex-wrap:wrap;gap:6px 12px;margin-bottom:6px}
+.legend-item{display:flex;align-items:center;gap:5px;white-space:nowrap}
+.legend-icon{width:18px;height:18px;object-fit:contain}
 </style>
 </head>
 <body>
 <div id="app">
-    <div id="mapPanel">
-        <div id="zoomStage">
-            <div id="mapWrap">
-                <img id="mapImg" alt="Campaign map">
-                <svg id="territorySvg" viewBox="0 0 4000 5000" preserveAspectRatio="none"></svg>
-            </div>
-        </div>
+  <main id="mapPanel">
+    <div id="zoomStage"><div id="mapWrap"><img id="mapImg" alt="Campaign map"><svg id="territorySvg"></svg></div></div>
+  </main>
+  <aside id="infoPanel">
+    <div id="poiBrowser">
+      <div class="browser-topbar"><div class="browser-title">Atlas</div><div id="poiCount"></div></div>
+      <div class="map-selector-row">
+        <select id="mapSelector"></select>
+        <button id="upLayerButton" type="button" title="Open parent map">Up</button>
+      </div>
+      <input id="poiSearch" type="search" placeholder="Search this map...">
+      <div class="filter-row">
+        <div class="filter-dropdown" id="categoryFilterDropdown"><button type="button" class="filter-button" id="categoryFilterButton">Categories: All</button><div class="filter-menu" id="categoryFilterMenu"></div></div>
+        <div class="filter-dropdown" id="factionFilterDropdown"><button type="button" class="filter-button" id="factionFilterButton">Factions: All</button><div class="filter-menu" id="factionFilterMenu"></div></div>
+      </div>
+      <div id="poiList"></div>
     </div>
-
-    <aside id="infoPanel">
-        <div id="poiBrowser">
-            <div class="browser-topbar">
-                <div class="browser-title">POIs</div>
-                <div id="poiCount"></div>
-            </div>
-            <input id="poiSearch" type="search" placeholder="Search POIs...">
-            <div class="filter-row">
-                <div class="filter-dropdown" id="categoryFilterDropdown">
-                    <button type="button" class="filter-button" id="categoryFilterButton">Categories: All</button>
-                    <div class="filter-menu" id="categoryFilterMenu"></div>
-                </div>
-                <div class="filter-dropdown" id="factionFilterDropdown">
-                    <button type="button" class="filter-button" id="factionFilterButton">Factions: All</button>
-                    <div class="filter-menu" id="factionFilterMenu"></div>
-                </div>
-            </div>
-            <div id="poiList"></div>
-        </div>
-
-        <div id="detailsPane">
-            <div class="player-title">Zuul</div>
-            <h1>Map Information</h1>
-            <p class="placeholder">Click a marker or choose a POI from the list.</p>
-        </div>
-    </aside>
+    <div id="detailsPane"><div class="player-title">Zuul.2.0 testing</div><h1>Map Information</h1><p>Choose a map, click a marker, or choose an item from the list.</p></div>
+  </aside>
 </div>
-
-<div id="controls">
-    <button type="button" onclick="zoomOut()">−</button>
-    <span id="zoomLabel">100%</span>
-    <button type="button" onclick="zoomIn()">+</button>
-    <button type="button" onclick="resetZoom()">Reset</button>
-</div>
-
-<div id="bottomControls">
-    <button id="toggleSidebarButton" type="button" onclick="toggleSidebar()">Hide Sidebar</button>
-    <button id="toggleLegendButton" type="button" onclick="toggleLegend()">Hide Legend</button>
-</div>
-
-<div class="legend" id="mapLegend">
-    <div class="legend-title">Categories</div>
-    <div id="categoryLegend" class="legend-grid"></div>
-    <div class="legend-title">Faction Colors</div>
-    <div id="factionLegend" class="legend-factions"></div>
-</div>
-
+<div id="controls"><button onclick="zoomBy(1.15)">+</button><button onclick="zoomBy(1/1.15)">−</button><button onclick="resetZoom()">Reset</button><span id="zoomLabel">100%</span></div>
+<div id="bottomControls"><button id="toggleSidebarButton" type="button" onclick="toggleSidebar()">Hide Sidebar</button><button id="toggleLegendButton" type="button" onclick="toggleLegend()">Hide Legend</button></div>
+<div class="legend" id="mapLegend"><div class="legend-title">Categories</div><div class="legend-grid" id="categoryLegend"></div><div class="legend-title">Faction Colors</div><div class="legend-factions" id="factionLegend"></div></div>
 <script>
-const DATA = {"title": "Zuul", "mapWidth": 4000, "mapHeight": 5000, "mapImage": "assets/map.jpeg", "categories": [{"name": "City", "icon": "assets/icons/category_City.png"}, {"name": "Danger", "icon": "assets/icons/category_Danger.png"}, {"name": "Dungeon", "icon": "assets/icons/category_Dungeon.png"}, {"name": "Location", "icon": "assets/icons/category_Location.png"}, {"name": "NPC", "icon": "assets/icons/category_NPC.png"}, {"name": "Quest", "icon": "assets/icons/category_Quest.png"}, {"name": "Secret", "icon": "assets/icons/category_Secret.png"}], "factions": [{"name": "Dragovar", "color": "#f7f700"}, {"name": "Grey Wolves", "color": "#55aaff"}, {"name": "Hazard", "color": "#ff5500"}, {"name": "Horned alliance", "color": "#aa0000"}, {"name": "Neutral", "color": "#828282"}, {"name": "Party", "color": "#00ff00"}, {"name": "Sea Kings", "color": "#0000ff"}], "pc_quests": [{"id": 1, "title": "Diviner", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Possible NPC that could cast the sending spell to contact Altima<\/p><\/body><\/html>", "pc": "Laira", "x": 2100.83140249663, "y": 1624.2000882543114, "icon": "assets/icons/pc_Laira.png", "color": "#0bc3b7"}, {"id": 2, "title": "Pai-Sat sighting", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Possible location where Pai-Sat was sighted<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Could be doing smuggling runs to Ghor Dranas<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Bounty Hunter Zereni Briarfell headed there to go after him<\/li><\/ul><\/body><\/html>", "pc": "Laira", "x": 2771.397186018396, "y": 2431.7972944298526, "icon": "assets/icons/pc_Laira.png", "color": "#0bc3b7"}, {"id": 3, "title": "Portmaster, Pai-Sat sighting", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Last confirmed location of Pai-Sat was PNZ<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">He supposedly skipped out on a loan over here<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Harbor Master may have information<\/li><\/ul><\/body><\/html>", "pc": "Laira", "x": 2151.0145207208993, "y": 1237.6095631136695, "icon": "assets/icons/pc_Laira.png", "color": "#0bc3b7"}, {"id": 4, "title": "Necklace?", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Jorbal seems to be a collector of artifacts, could be a good person to ask about Ptolemaius' necklace<\/li><\/ul><\/body><\/html>", "pc": "Ptolemaius", "x": 2042.0568787265456, "y": 1274.873059268213, "icon": "assets/icons/pc_Ptolemaius.png", "color": "#005500"}, {"id": 5, "title": "Logging Colony", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Frequently attacked by Druids<\/p><\/body><\/html>", "pc": "Truffula", "x": 2215.7361367814183, "y": 1446.6731508016076, "icon": "assets/icons/pc_Truffula.png", "color": "#aaaaff"}], "party_location": {"x": 2127.683597820768, "y": 1672.528455750252, "visible": true}, "pois": [{"id": 1, "title": "Old man rolf", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Elderly Harrengon fisherman<\/p>\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /><\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Friend of Laira<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Possible assasin<\/li><\/ul><\/body><\/html>", "category": "NPC", "faction": "Neutral", "x": 2154.068035325477, "y": 1641.1973091341858, "icon": "assets/icons/category_NPC.png", "color": "#828282"}, {"id": 4, "title": "Prince Jorbal", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:700;\">Merchant Prince - Seller of wilderness guides and sell swords<\/span><\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" font-weight:700;\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:400;\">Purchased Jade Statue from Silas<\/span><\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Likely in possession of Ptol's Necklace<\/li><\/ul><\/body><\/html>", "category": "NPC", "faction": "Neutral", "x": 2050.57251983638, "y": 1299.650238721196, "icon": "assets/icons/category_NPC.png", "color": "#828282"}, {"id": 5, "title": "First Empire Tomb", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">30 miles west of redspine<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Originally explored by Naya<\/li><\/ul>\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /><\/p><\/body><\/html>", "category": "Dungeon", "faction": "Neutral", "x": 2085.5777848710504, "y": 1493.9804555770686, "icon": "assets/icons/category_Dungeon.png", "color": "#828282"}, {"id": 6, "title": "Large Crater", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Three grubs mentioned a large crater east of Soshenstar<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Possibly gold in it<\/li><\/ul><\/body><\/html>", "category": "Location", "faction": "Neutral", "x": 1975.7891525006714, "y": 1653.4455156882598, "icon": "assets/icons/category_Location.png", "color": "#828282"}, {"id": 7, "title": "Pai-Sat Activity", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Rumors of a brilliant captain running routes to Refuge Bay, possibly Pai-Sat smuggling to Ghor Dranas<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Bounty hunter Zereni Briarfell said she was headed there to claim 7000g bounty<\/li><\/ul><\/body><\/html>", "category": "City", "faction": "Sea Kings", "x": 2751.9113143372415, "y": 2453.668288925526, "icon": "assets/icons/category_City.png", "color": "#0000ff"}, {"id": 8, "title": "Supply route", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Recently stablized supply route to Ghor Dranas<\/p><\/body><\/html>", "category": "Danger", "faction": "Neutral", "x": 2441.6054158366655, "y": 1724.8164878750854, "icon": "assets/icons/category_Danger.png", "color": "#828282"}, {"id": 9, "title": "Nassim", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Missionary of House of Ascending Light<\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Booze Hound, likes scotch<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Tension with Ratfuck<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Using pilgrims to provide labor to Ratley in exchange for lux<\/li><\/ul><\/body><\/html>", "category": "NPC", "faction": "Dragovar", "x": 2156.5694643863267, "y": 1699.0675297323144, "icon": "assets/icons/category_NPC.png", "color": "#f7f700"}, {"id": 10, "title": "Camp Vengence", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:'Aptos','sans-serif'; font-size:12pt;\">A fortified military base deep in the jungle interior. It is miserable, muddy, and constantly attacked. <\/span><\/p>\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /><\/p>\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Greywolves fort<\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Manned by 30 men<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Lt Valen and Pvt. Desmond<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Worship Talos?<\/li><\/ul>\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /><\/p>\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /><\/p><\/body><\/html>", "category": "City", "faction": "Grey Wolves", "x": 1583.114453190694, "y": 1863.1371890565117, "icon": "assets/icons/category_City.png", "color": "#55aaff"}, {"id": 11, "title": "FE Dungeon", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">80 miles south east of Three Trees<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Patrolled by Grung<\/li><\/ul><\/body><\/html>", "category": "Dungeon", "faction": "Neutral", "x": 1845.0737506020687, "y": 1900.4078208020323, "icon": "assets/icons/category_Dungeon.png", "color": "#828282"}, {"id": 12, "title": "Corby (deeplantern guild)", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Frequents Cedar &amp; Smoke tavern<\/p><\/body><\/html>", "category": "NPC", "faction": "Neutral", "x": 2234.840251134858, "y": 1484.9487363498458, "icon": "assets/icons/category_NPC.png", "color": "#828282"}, {"id": 13, "title": "Milo Yellowcrane", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Assessor<\/p><\/body><\/html>", "category": "NPC", "faction": "Dragovar", "x": 2271.4182259132645, "y": 1482.2273886350936, "icon": "assets/icons/category_NPC.png", "color": "#f7f700"}, {"id": 14, "title": "Zindar", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Harbormaster of PNZ<\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Pai-Sat was there recently, skipped out on a loan, he may know<\/li><\/ul><\/body><\/html>", "category": "NPC", "faction": "Neutral", "x": 2124.8945579506903, "y": 1256.1617328182992, "icon": "assets/icons/category_NPC.png", "color": "#828282"}, {"id": 15, "title": "Lt Valerius", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Guard Sgt<\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Drunk<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Recently had attacks on scout towers on eastern perimeter, thinks it could be Alliance<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Recently promoted to Lt.<\/li><\/ul><\/body><\/html>", "category": "NPC", "faction": "Dragovar", "x": 2192.669981088741, "y": 1670.2425856095736, "icon": "assets/icons/category_NPC.png", "color": "#f7f700"}, {"id": 16, "title": "Attacks on eastern perimeter scout towers", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Forward scout towers on eastern perimeter attacked three times in past month, small raids<\/p><\/body><\/html>", "category": "Danger", "faction": "Horned alliance", "x": 2086.324457985149, "y": 1671.4072877726637, "icon": "assets/icons/category_Danger.png", "color": "#aa0000"}, {"id": 17, "title": "Possible port city", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Spoken of by Ghordan Rhaiko and Denarion Morrow<\/p><\/body><\/html>", "category": "City", "faction": "Sea Kings", "x": 902.7477393025765, "y": 2446.462239023854, "icon": "assets/icons/category_City.png", "color": "#0000ff"}, {"id": 18, "title": "Ratley", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Imperial Baron<\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Needs laborers<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Allows lux smuggling in exchange for labor from pilgrims<\/li><\/ul><\/body><\/html>", "category": "NPC", "faction": "Dragovar", "x": 2191.8450513398666, "y": 1713.3961405088346, "icon": "assets/icons/category_NPC.png", "color": "#f7f700"}, {"id": 19, "title": "Yuan Ti Raids", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Seems to be a battle front between Empire and natives<\/p><\/body><\/html>", "category": "Danger", "faction": "Neutral", "x": 2274.9364692542845, "y": 2046.1730448413523, "icon": "assets/icons/category_Danger.png", "color": "#828282"}, {"id": 20, "title": "Prince Kwayothe", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Merchant prince of ale, amberwine, oil, insect repellent. <\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Uses slave labor, works them to death<\/li><\/ul><\/body><\/html>", "category": "NPC", "faction": "Neutral", "x": 2078.193826455577, "y": 1320.9699908177918, "icon": "assets/icons/category_NPC.png", "color": "#828282"}, {"id": 21, "title": "Baroness Dane", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Baroness of redspine<\/p><\/body><\/html>", "category": "NPC", "faction": "Dragovar", "x": 2235.884900982528, "y": 1520.6714288287571, "icon": "assets/icons/category_NPC.png", "color": "#f7f700"}, {"id": 22, "title": "Arthur Vane", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Informant for Silas<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Sick child<\/li><\/ul>\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /><\/p><\/body><\/html>", "category": "NPC", "faction": "Neutral", "x": 2298.641122977166, "y": 1516.5222571266322, "icon": "assets/icons/category_NPC.png", "color": "#828282"}, {"id": 23, "title": "Septima - Diviner", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">If the post office doesnt have send-a-grams, she could be a good bet for contacting alti<\/p><\/body><\/html>", "category": "NPC", "faction": "Neutral", "x": 2105.057627366061, "y": 1635.2093136659132, "icon": "assets/icons/category_NPC.png", "color": "#828282"}, {"id": 24, "title": "New Hollowdark Entrance", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">New hollow dark entrance a few miles east of the mill.<\/p><\/body><\/html>", "category": "Dungeon", "faction": "Neutral", "x": 2168.844208208522, "y": 1473.8579481026095, "icon": "assets/icons/category_Dungeon.png", "color": "#828282"}, {"id": 25, "title": "Port Nyanzaru (PNZ)", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:700;\">Population \u2013 <\/span>9,300<\/p>\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:700;\">Notable Locations<\/span><\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" font-weight:700;\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:400;\">Golden Throne \u2013 Seat of Governance<\/span><\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Gladiatorial arenas<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Bazaars<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Temples<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Circuses<\/li><\/ul>\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:700;\">Notable NPCs<\/span><\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" font-weight:700;\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:400;\">Zindar (Male Half-Dragon): Magic wielding Harbormaster. <\/span><\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Merchant Prince Ekene-Afa (Female Human): Seller of weapons and armor. <\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Merchant Prince Ifan Talro\u2019a (Male Human): Vendor of exotic animals and domesticated beasts. <\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Merchant Prince Jessamine (Female Human): Seller of plants, herbs, poison, and assassins. <\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Merchant Prince Jorbal (Male Human): Seller of wilderness guides and sellswords. <\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Merchant Prince Kwayothe (Female Half-Elf): Seller of ale, amberwine, oil, and insect repellant. <\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Merchant Prince Wakanga O\u2019tamu (Male Dragonborn): Deals in magic and lore. <\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Merchant Prince Zhanthi (Female Human): Trades in gems, jewlery, and cloth. <\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">High Fist Portyr (Female Dragonborn): Commander of Fort Belurian and highest-ranking member of the Claw on Zuul. <\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Inquisitor Vane (Male Dragonborn): Imperial Auditor. <\/li><\/ul><\/body><\/html>", "category": "City", "faction": "Dragovar", "x": 2071.838977995508, "y": 1267.92237290268, "icon": "assets/icons/category_City.png", "color": "#f7f700"}, {"id": 26, "title": "Camp Righteous", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:'Aptos','sans-serif'; font-size:12pt;\">The empire\u2019s deepest stab into the island of Zuul. <\/span><\/p>\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-family:'Aptos','sans-serif'; font-size:12pt;\"><br /><\/p>\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:'Aptos','sans-serif'; font-size:12pt;\">~1 year ago, it was reported that Camp Righteous was overrun by hundreds of goblins and undead that came swarming out of the jungle<\/span><\/p><\/body><\/html>", "category": "Danger", "faction": "Grey Wolves", "x": 1750.879110645295, "y": 1721.8946005365133, "icon": "assets/icons/category_Danger.png", "color": "#55aaff"}, {"id": 27, "title": "Redspine", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Empires 'Open Wound,' a massive logging colony carved our ot the dense wooded jungle. Supposedly a penal slave colony. Frequently attacked by Druid Colonies<\/p>\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /><\/p>\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:700;\">Notable Locations<\/span><\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" font-weight:700;\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:400;\">Cedar &amp; Smoke Tavern<\/span><\/li><\/ul>\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /><\/p>\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:700;\">Notable NPCs<\/span><\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" font-weight:700;\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:400;\">Baroness Dane \u2013 Ruler<\/span><\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Milo Yellowcrane \u2013 Assessor<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Corby \u2013 Deeplantern Guild<\/li><\/ul><\/body><\/html>", "category": "City", "faction": "Dragovar", "x": 2208.3708089029205, "y": 1473.065575699558, "icon": "assets/icons/category_City.png", "color": "#f7f700"}, {"id": 28, "title": "Three Trees", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">The 'last handshake' with civilization.<\/p>\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /><\/p>\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:700;\">Notable locations<\/span><\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" font-weight:700;\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:400;\">The Talismen \u2013 Cheap Tavern<\/span><\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">The Broken Keel \u2013 Pricier Tavern<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Post Office<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">House of Ascending Light \u2013 Temple<\/li><\/ul>\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:700;\">Notable NPCs<\/span><\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Eamon Ratley (Male Dragonborn) \u2013 Imperial Provisioner and Baron<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Captain Van Der Hoven (Male Human) \u2013 Claw Captain<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Missionary Nassim (Male Dragonborn) \u2013 Head missionary at House of Ascending Light<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Madam Vess (Female Earth Genasi) \u2013 Proprietor of Lumber Camp<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Septima \u2013 Diviner<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Lt. Valerius \u2013 Guard Lt.<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Captain Morrow \u2013 Captain of Morrow's folly<\/li><\/ul><\/body><\/html>", "category": "City", "faction": "Dragovar", "x": 2127.3522022394454, "y": 1671.9294284189982, "icon": "assets/icons/category_City.png", "color": "#f7f700"}, {"id": 29, "title": "Ghor Dranas", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Tip of the Imperial Spear, a massive wooden fortress. This is where Chult (ration paste) is farmed.<\/p>\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /><\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Frontline of the war between the Empire and Yuan-ti<\/li><\/ul><\/body><\/html>", "category": "City", "faction": "Dragovar", "x": 2327.4436096053014, "y": 2053.085146131259, "icon": "assets/icons/category_City.png", "color": "#f7f700"}], "territories": [{"id": 2, "title": "Deepsnake Territory", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Rumors of Secondary supply route to Ghor Dranas. Possibly Pai-Sat?<\/p><\/body><\/html>", "faction": "Hazard", "points": [[2655.749061140769, 2145.2933974409843], [2428.113427328703, 2059.7575835237235], [2352.2348827246806, 2204.616623222311], [2553.6579284008117, 2389.484350075746], [2568.833637321616, 2411.558108506007]], "centroid": [2511.717787383316, 2242.1420125537543], "color": "#ff5500", "fill": "rgba(255, 85, 0, 0.28)"}, {"id": 3, "title": "Possible Fire Newts", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Fire Newt sighting 20 miles from three trees<\/p><\/body><\/html>", "faction": "Hazard", "points": [[1978.4295798072299, 1746.7930772796792], [2258.9612567489853, 1773.0986391263941], [2238.567023416679, 1921.8565763738047], [1938.651827353351, 1888.266074414712]], "centroid": [2103.6524218315612, 1832.5035917986474], "color": "#ff5500", "fill": "rgba(255, 85, 0, 0.28)"}, {"id": 4, "title": "Horned Alliance and natives", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Anywhere past refuge bay is Alliance and natives<\/p><\/body><\/html>", "faction": "Horned alliance", "points": [[2820.7342725936774, 2487.7476775398472], [2719.3905262729463, 2644.5891897028832], [3341.9306822431504, 2924.490965255378], [3455.33916026873, 2738.6940970007045], [3040.3123896219277, 2654.240975066762], [3095.8101554642326, 2608.3949945883364], [3177.850331057205, 2613.220887270276]], "centroid": [3093.0525025031243, 2667.3398266320264], "color": "#aa0000", "fill": "rgba(170, 0, 0, 0.28)"}, {"id": 5, "title": "Synestragos Raiders", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /><\/p><\/body><\/html>", "faction": "Sea Kings", "points": [[2804.9958300847, 4853.695856153389], [3599.5850925319023, 4818.593519258131], [3216.650508219998, 4308.014073508925], [3021.992094528113, 4346.307531940116]], "centroid": [3160.805881341178, 4581.65274521514], "color": "#0000ff", "fill": "rgba(0, 0, 255, 0.28)"}, {"id": 6, "title": "Organized Pirate Activity", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Captain Razaan (independent) said southern coast is getting busy<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Raiko met in secret with Ratfuck and Vanderhoven about pirate called captain Mailos<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Empire might be sending shipping manifests to the pirates.<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Patterns in harrassment, looks like empire looking other way<\/li><\/ul><\/body><\/html>", "faction": "Sea Kings", "points": [[607.7171853029919, 3637.8625953554097], [1823.1515559089758, 4207.597456576965], [1477.090380944772, 4659.165087322938], [367.1624661205576, 4203.377198345694]], "centroid": [1068.7803970693244, 4177.000584400252], "color": "#0000ff", "fill": "rgba(0, 0, 255, 0.28)"}]};
-
-const mapPanel = document.getElementById("mapPanel");
-const zoomStage = document.getElementById("zoomStage");
-const mapImg = document.getElementById("mapImg");
-const mapWrap = document.getElementById("mapWrap");
-const territorySvg = document.getElementById("territorySvg");
-const detailsPane = document.getElementById("detailsPane");
-const infoPanel = document.getElementById("infoPanel");
-const toggleSidebarButton = document.getElementById("toggleSidebarButton");
-const mapLegend = document.getElementById("mapLegend");
-const toggleLegendButton = document.getElementById("toggleLegendButton");
-const zoomLabel = document.getElementById("zoomLabel");
-const categoryLegend = document.getElementById("categoryLegend");
-const factionLegend = document.getElementById("factionLegend");
-const poiSearch = document.getElementById("poiSearch");
-const categoryFilterDropdown = document.getElementById("categoryFilterDropdown");
-const categoryFilterButton = document.getElementById("categoryFilterButton");
-const categoryFilterMenu = document.getElementById("categoryFilterMenu");
-const factionFilterDropdown = document.getElementById("factionFilterDropdown");
-const factionFilterButton = document.getElementById("factionFilterButton");
-const factionFilterMenu = document.getElementById("factionFilterMenu");
-const poiList = document.getElementById("poiList");
-const poiCount = document.getElementById("poiCount");
-
-const PC_QUEST_CATEGORY = "PC Quests";
-
-let zoom = 1.0;
-let dragging = false;
-let dragStartX = 0;
-let dragStartY = 0;
-let scrollStartLeft = 0;
-let scrollStartTop = 0;
-let selectedPoiId = null;
-let sidebarCollapsed = false;
-let legendCollapsed = false;
-const markerById = new Map();
-const pcQuestMarkerById = new Map();
-const categoryByName = new Map(DATA.categories.map(c => [c.name, c]));
-const factionByName = new Map(DATA.factions.map(f => [f.name, f]));
-
-mapImg.src = DATA.mapImage;
-territorySvg.setAttribute("viewBox", `0 0 ${DATA.mapWidth} ${DATA.mapHeight}`);
-
-function pctX(x) {
-    return (x / DATA.mapWidth * 100).toFixed(5) + "%";
-}
-function pctY(y) {
-    return (y / DATA.mapHeight * 100).toFixed(5) + "%";
-}
-
-function applyZoom(anchorClientX = null, anchorClientY = null, previousZoom = zoom) {
-    let anchorMapX = null;
-    let anchorMapY = null;
-
-    if (anchorClientX !== null && anchorClientY !== null) {
-        const panelRect = mapPanel.getBoundingClientRect();
-        anchorMapX = (mapPanel.scrollLeft + anchorClientX - panelRect.left) / previousZoom;
-        anchorMapY = (mapPanel.scrollTop + anchorClientY - panelRect.top) / previousZoom;
-    }
-
-    mapWrap.style.transform = `scale(${zoom})`;
-    zoomStage.style.width = `${DATA.mapWidth * zoom}px`;
-    zoomStage.style.height = `${DATA.mapHeight * zoom}px`;
-    zoomLabel.textContent = `${Math.round(zoom * 100)}%`;
-
-    if (anchorMapX !== null && anchorMapY !== null) {
-        const panelRect = mapPanel.getBoundingClientRect();
-        mapPanel.scrollLeft = anchorMapX * zoom - (anchorClientX - panelRect.left);
-        mapPanel.scrollTop = anchorMapY * zoom - (anchorClientY - panelRect.top);
-    }
-}
-
-function setZoom(newZoom, anchorClientX = null, anchorClientY = null) {
-    const previousZoom = zoom;
-    zoom = Math.max(0.35, Math.min(4.0, newZoom));
-    applyZoom(anchorClientX, anchorClientY, previousZoom);
-}
-function zoomIn() { setZoom(zoom + 0.20, window.innerWidth / 2, window.innerHeight / 2); }
-function zoomOut() { setZoom(zoom - 0.20, window.innerWidth / 2, window.innerHeight / 2); }
-function resetZoom() { setZoom(1.0, window.innerWidth / 2, window.innerHeight / 2); }
-
-function toggleSidebar() {
-    sidebarCollapsed = !sidebarCollapsed;
-    infoPanel.classList.toggle("collapsed", sidebarCollapsed);
-    toggleSidebarButton.textContent = sidebarCollapsed ? "Show Sidebar" : "Hide Sidebar";
-}
-
-function toggleLegend() {
-    legendCollapsed = !legendCollapsed;
-    mapLegend.classList.toggle("hidden", legendCollapsed);
-    toggleLegendButton.textContent = legendCollapsed ? "Show Legend" : "Hide Legend";
-}
-
-mapPanel.addEventListener("wheel", function(event) {
-    if (!event.ctrlKey) return;
-    event.preventDefault();
-    if (event.deltaY < 0) setZoom(zoom + 0.15, event.clientX, event.clientY);
-    else setZoom(zoom - 0.15, event.clientX, event.clientY);
-}, { passive: false });
-
-mapPanel.addEventListener("mousedown", function(event) {
-    if (event.button !== 0) return;
-    if (event.target.closest(".poi")) return;
-
-    dragging = true;
-    dragStartX = event.clientX;
-    dragStartY = event.clientY;
-    scrollStartLeft = mapPanel.scrollLeft;
-    scrollStartTop = mapPanel.scrollTop;
-    mapPanel.classList.add("dragging");
-    event.preventDefault();
-});
-
-window.addEventListener("mousemove", function(event) {
-    if (!dragging) return;
-    const dx = event.clientX - dragStartX;
-    const dy = event.clientY - dragStartY;
-    mapPanel.scrollLeft = scrollStartLeft - dx;
-    mapPanel.scrollTop = scrollStartTop - dy;
-});
-
-window.addEventListener("mouseup", function() {
-    dragging = false;
-    mapPanel.classList.remove("dragging");
-});
-
-function renderLegend() {
-    DATA.categories.forEach(c => {
-        const item = document.createElement("div");
-        item.className = "legend-item";
-
-        if (c.icon) {
-            const img = document.createElement("img");
-            img.src = c.icon;
-            img.alt = c.name;
-            item.appendChild(img);
-        } else {
-            const fallback = document.createElement("span");
-            fallback.textContent = "◆";
-            item.appendChild(fallback);
-        }
-
-        const text = document.createElement("span");
-        text.textContent = c.name;
-        item.appendChild(text);
-        categoryLegend.appendChild(item);
-    });
-
-    DATA.factions.forEach(f => {
-        const item = document.createElement("div");
-        item.className = "legend-item";
-
-        const dot = document.createElement("span");
-        dot.className = "color-dot";
-        dot.textContent = "●";
-        dot.style.color = f.color;
-        item.appendChild(dot);
-
-        const text = document.createElement("span");
-        text.textContent = f.name;
-        item.appendChild(text);
-
-        factionLegend.appendChild(item);
-    });
-
-    const pcQuestColors = new Map();
-    (DATA.pc_quests || []).forEach(q => {
-        if (!pcQuestColors.has(q.pc)) pcQuestColors.set(q.pc, q.color);
-    });
-
-    if (pcQuestColors.size) {
-        const title = document.createElement("div");
-        title.className = "legend-title";
-        title.textContent = "PC Quest Colors";
-        factionLegend.parentElement.appendChild(title);
-
-        const pcGrid = document.createElement("div");
-        pcGrid.className = "legend-factions";
-        pcQuestColors.forEach((color, pc) => {
-            const item = document.createElement("div");
-            item.className = "legend-item";
-
-            const dot = document.createElement("span");
-            dot.className = "color-dot";
-            dot.textContent = "●";
-            dot.style.color = color;
-            item.appendChild(dot);
-
-            const text = document.createElement("span");
-            text.textContent = pc;
-            item.appendChild(text);
-
-            pcGrid.appendChild(item);
-        });
-        factionLegend.parentElement.appendChild(pcGrid);
-    }
-}
-
-function setupMultiFilter(dropdown, button, menu, title, values) {
-    menu.innerHTML = "";
-
-    const actions = document.createElement("div");
-    actions.className = "filter-menu-actions";
-
-    const selectAll = document.createElement("button");
-    selectAll.type = "button";
-    selectAll.textContent = "Select All";
-
-    const deselectAll = document.createElement("button");
-    deselectAll.type = "button";
-    deselectAll.textContent = "Deselect All";
-
-    actions.appendChild(selectAll);
-    actions.appendChild(deselectAll);
-    menu.appendChild(actions);
-
-    values.forEach(value => {
-        const label = document.createElement("label");
-        label.className = "filter-option";
-
-        const checkbox = document.createElement("input");
-        checkbox.type = "checkbox";
-        checkbox.value = value;
-        checkbox.checked = true;
-
-        const text = document.createElement("span");
-        text.textContent = value;
-
-        checkbox.addEventListener("change", () => {
-            updateFilterButtonLabel(button, title, menu);
-            renderPOIList();
-            updateMarkerVisibility();
-        });
-
-        label.appendChild(checkbox);
-        label.appendChild(text);
-        menu.appendChild(label);
-    });
-
-    const closeButton = document.createElement("button");
-    closeButton.type = "button";
-    closeButton.className = "filter-close";
-    closeButton.textContent = "Close";
-    closeButton.addEventListener("click", () => dropdown.classList.remove("open"));
-    menu.appendChild(closeButton);
-
-    selectAll.addEventListener("click", event => {
-        event.stopPropagation();
-        menu.querySelectorAll("input[type='checkbox']").forEach(cb => cb.checked = true);
-        updateFilterButtonLabel(button, title, menu);
-        renderPOIList();
-        updateMarkerVisibility();
-    });
-
-    deselectAll.addEventListener("click", event => {
-        event.stopPropagation();
-        menu.querySelectorAll("input[type='checkbox']").forEach(cb => cb.checked = false);
-        updateFilterButtonLabel(button, title, menu);
-        renderPOIList();
-        updateMarkerVisibility();
-    });
-
-    button.addEventListener("click", event => {
-        event.stopPropagation();
-        document.querySelectorAll(".filter-dropdown.open").forEach(openDropdown => {
-            if (openDropdown !== dropdown) openDropdown.classList.remove("open");
-        });
-        dropdown.classList.toggle("open");
-    });
-
-    menu.addEventListener("click", event => event.stopPropagation());
-    updateFilterButtonLabel(button, title, menu);
-}
-
-function updateFilterButtonLabel(button, title, menu) {
-    const checkboxes = [...menu.querySelectorAll("input[type='checkbox']")];
-    const checked = checkboxes.filter(cb => cb.checked);
-
-    if (checkboxes.length === 0 || checked.length === 0) {
-        button.textContent = `${title}: None`;
-    } else if (checked.length === checkboxes.length) {
-        button.textContent = `${title}: All`;
-    } else if (checked.length === 1) {
-        button.textContent = `${title}: ${checked[0].value}`;
-    } else {
-        button.textContent = `${title}: ${checked.length} selected`;
-    }
-}
-
-function checkedFilterValues(menu) {
-    return new Set([...menu.querySelectorAll("input[type='checkbox']:checked")].map(cb => cb.value));
-}
-
-function populateFilters() {
-    const categoryNames = [...DATA.categories.map(c => c.name), PC_QUEST_CATEGORY];
-    const factionNames = [...DATA.factions.map(f => f.name)];
-
-    setupMultiFilter(categoryFilterDropdown, categoryFilterButton, categoryFilterMenu, "Categories", categoryNames);
-    setupMultiFilter(factionFilterDropdown, factionFilterButton, factionFilterMenu, "Factions", factionNames);
-}
-
-document.addEventListener("click", () => {
-    document.querySelectorAll(".filter-dropdown.open").forEach(dropdown => dropdown.classList.remove("open"));
-});
-
-
-function renderTerritories() {
-    DATA.territories.forEach(t => {
-        const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-        polygon.setAttribute("points", t.points.map(p => `${p[0]},${p[1]}`).join(" "));
-        polygon.setAttribute("fill", t.fill);
-        polygon.setAttribute("stroke", t.color);
-        polygon.setAttribute("stroke-width", "2");
-        territorySvg.appendChild(polygon);
-
-        const label = document.createElement("div");
-        label.className = "territory-label";
-        label.style.left = pctX(t.centroid[0]);
-        label.style.top = pctY(t.centroid[1]);
-        label.innerHTML = `${escapeHtml(t.title)}<br><span style="font-weight:500">${escapeHtml(t.faction)}</span>`;
-        mapWrap.appendChild(label);
-    });
-}
-
-function renderPartyLocation() {
-    if (!DATA.party_location || DATA.party_location.visible === false) return;
-
-    const marker = document.createElement("div");
-    marker.className = "party-location";
-    marker.title = "Party Location";
-    marker.style.left = pctX(DATA.party_location.x);
-    marker.style.top = pctY(DATA.party_location.y);
-    mapWrap.appendChild(marker);
-}
-
-function renderPCQuests() {
-    (DATA.pc_quests || []).forEach(q => {
-        const marker = document.createElement("button");
-        marker.className = "pc-quest";
-        marker.dataset.pcQuestId = q.id;
-        marker.style.left = pctX(q.x);
-        marker.style.top = pctY(q.y);
-        marker.title = `${q.title}
-PC Quest | ${q.pc}`;
-
-        const pin = document.createElement("span");
-        pin.className = "pc-quest-pin";
-
-        const shape = document.createElement("span");
-        shape.className = "pc-quest-shape";
-        shape.style.background = q.color;
-
-        const icon = document.createElement("span");
-        icon.className = "pc-quest-icon";
-        if (q.icon) {
-            const img = document.createElement("img");
-            img.src = q.icon;
-            img.alt = q.pc;
-            icon.appendChild(img);
-        } else {
-            icon.textContent = "PC";
-        }
-
-        pin.appendChild(shape);
-        pin.appendChild(icon);
-        marker.appendChild(pin);
-        marker.addEventListener("click", () => selectPCQuest(q, true));
-        pcQuestMarkerById.set(q.id, marker);
-        mapWrap.appendChild(marker);
-    });
-}
-
-function renderPOIs() {
-    DATA.pois.forEach(p => {
-        const marker = document.createElement("button");
-        marker.className = "poi";
-        marker.dataset.poiId = p.id;
-        marker.style.left = pctX(p.x);
-        marker.style.top = pctY(p.y);
-        marker.style.background = p.color;
-        marker.title = `${p.title}
-${p.category} | ${p.faction}`;
-
-        const inner = document.createElement("span");
-        inner.className = "poi-inner";
-
-        if (p.icon) {
-            const img = document.createElement("img");
-            img.src = p.icon;
-            img.alt = p.category;
-            inner.appendChild(img);
-        } else {
-            inner.textContent = "◆";
-        }
-
-        marker.appendChild(inner);
-        marker.addEventListener("click", () => selectPOI(p, true));
-        markerById.set(p.id, marker);
-        mapWrap.appendChild(marker);
-    });
-}
-
-function filteredPOIs() {
-    const searchText = poiSearch.value.trim().toLowerCase();
-    const checkedCategories = checkedFilterValues(categoryFilterMenu);
-    const checkedFactions = checkedFilterValues(factionFilterMenu);
-
-    return DATA.pois.filter(p => {
-        const plainDescription = stripHtml(p.description || "");
-        const haystack = `${p.title} ${plainDescription} ${p.category} ${p.faction}`.toLowerCase();
-        if (searchText && !haystack.includes(searchText)) return false;
-        if (!checkedCategories.has(p.category)) return false;
-        if (!checkedFactions.has(p.faction)) return false;
-        return true;
-    });
-}
-
-function filteredPCQuests() {
-    const searchText = poiSearch.value.trim().toLowerCase();
-    const checkedCategories = checkedFilterValues(categoryFilterMenu);
-
-    if (!checkedCategories.has(PC_QUEST_CATEGORY)) return [];
-
-    return (DATA.pc_quests || []).filter(q => {
-        const plainDescription = stripHtml(q.description || "");
-        const haystack = `${q.title} ${plainDescription} ${q.pc} PC Quest`.toLowerCase();
-        return !searchText || haystack.includes(searchText);
-    });
-}
-
-function updateMarkerVisibility() {
-    const visiblePoiIds = new Set(filteredPOIs().map(p => p.id));
-    markerById.forEach((marker, id) => {
-        marker.style.display = visiblePoiIds.has(id) ? "" : "none";
-    });
-
-    const visibleQuestIds = new Set(filteredPCQuests().map(q => q.id));
-    pcQuestMarkerById.forEach((marker, id) => {
-        marker.style.display = visibleQuestIds.has(id) ? "" : "none";
-    });
-}
-
-function renderPOIList() {
-    const pois = filteredPOIs();
-    const pcQuests = filteredPCQuests();
-    poiList.innerHTML = "";
-
-    pois.forEach(p => {
-        const item = document.createElement("div");
-        item.className = "poi-list-item" + (p.id === selectedPoiId ? " active" : "");
-
-        const category = categoryByName.get(p.category);
-        const mainIconHtml = category && category.icon
-            ? `<img class="poi-list-main-img" src="${escapeAttr(category.icon)}" alt="${escapeAttr(p.category)}">`
-            : "◆";
-        const tagIconHtml = category && category.icon
-            ? `<img class="poi-list-tag-img" src="${escapeAttr(category.icon)}" alt="">`
-            : "◆";
-
-        const faction = factionByName.get(p.faction);
-        const factionDot = faction
-            ? `<span class="faction-chip-dot" style="color:${escapeAttr(faction.color)}">●</span>`
-            : "";
-
-        item.innerHTML = `
-            <div class="poi-list-icon" style="background:${escapeAttr(p.color)};">
-                <div class="poi-list-icon-inner">${mainIconHtml}</div>
-            </div>
-            <div class="poi-list-text">
-                <span class="poi-list-title">${escapeHtml(p.title)}</span>
-                <div class="poi-list-meta">
-                    <span class="list-tag">${tagIconHtml} ${escapeHtml(p.category)}</span>
-                    <span class="list-tag">${factionDot} ${escapeHtml(p.faction)}</span>
-                </div>
-            </div>
-        `;
-        item.addEventListener("click", () => selectPOI(p, true));
-        poiList.appendChild(item);
-    });
-
-    if (pcQuests.length) {
-        if (pois.length) {
-            const spacer = document.createElement("div");
-            spacer.className = "poi-list-spacer";
-            poiList.appendChild(spacer);
-        }
-
-        const header = document.createElement("div");
-        header.className = "poi-list-header";
-        header.textContent = "PC Quest Markers";
-        poiList.appendChild(header);
-
-        pcQuests.forEach(q => {
-            const item = document.createElement("div");
-            item.className = "poi-list-item" + (q.id === selectedPoiId ? " active" : "");
-
-            const iconHtml = q.icon
-                ? `<img class="poi-list-main-img" src="${escapeAttr(q.icon)}" alt="${escapeAttr(q.pc)}">`
-                : "PC";
-
-            item.innerHTML = `
-                <div class="poi-list-icon" style="background:${escapeAttr(q.color)};">
-                    <div class="poi-list-icon-inner">${iconHtml}</div>
-                </div>
-                <div class="poi-list-text">
-                    <span class="poi-list-title">${escapeHtml(q.pc)} - ${escapeHtml(q.title)}</span>
-                    <div class="poi-list-meta">
-                        <span class="list-tag"><span class="faction-chip-dot" style="color:${escapeAttr(q.color)}">●</span> PC Quest</span>
-                    </div>
-                </div>
-            `;
-            item.addEventListener("click", () => selectPCQuest(q, true));
-            poiList.appendChild(item);
-        });
-    }
-
-    const totalQuests = (DATA.pc_quests || []).length;
-    poiCount.textContent = `${pois.length} / ${DATA.pois.length} POIs` + (totalQuests ? `; ${pcQuests.length} / ${totalQuests} PC quests` : "");
-    updateMarkerVisibility();
-}
-
-function selectPOI(p, centerMap = false) {
-    selectedPoiId = p.id;
-
-    markerById.forEach(marker => marker.classList.remove("selected"));
-    pcQuestMarkerById.forEach(marker => marker.classList.remove("selected"));
-
-    const marker = markerById.get(p.id);
-    if (marker) marker.classList.add("selected");
-
-    showPOI(p);
-    renderPOIList();
-
-    if (centerMap) {
-        const panelRect = mapPanel.getBoundingClientRect();
-        mapPanel.scrollLeft = p.x * zoom - panelRect.width / 2;
-        mapPanel.scrollTop = p.y * zoom - panelRect.height / 2;
-    }
-}
-
-function selectPCQuest(q, centerMap = false) {
-    selectedPoiId = q.id;
-
-    markerById.forEach(marker => marker.classList.remove("selected"));
-    pcQuestMarkerById.forEach(marker => marker.classList.remove("selected"));
-
-    const marker = pcQuestMarkerById.get(q.id);
-    if (marker) marker.classList.add("selected");
-
-    showPCQuest(q);
-    renderPOIList();
-
-    if (centerMap) {
-        const panelRect = mapPanel.getBoundingClientRect();
-        mapPanel.scrollLeft = q.x * zoom - panelRect.width / 2;
-        mapPanel.scrollTop = q.y * zoom - panelRect.height / 2;
-    }
-}
-
-function showPCQuest(q) {
-    const pcIcon = q.icon
-        ? `<img src="${escapeAttr(q.icon)}" alt="${escapeAttr(q.pc)}">`
-        : "PC";
-
-    detailsPane.innerHTML = `
-        <div class="player-title">${escapeHtml(DATA.title || "Campaign Map")}</div>
-        <div class="poi-header">
-            <div class="poi-header-icon">${pcIcon}</div>
-            <div><h1>${escapeHtml(q.title)}</h1></div>
-        </div>
-        <div class="badge-row">
-            <span class="badge"><span class="faction-chip-dot" style="color:${escapeAttr(q.color)}">●</span> <strong>PC:</strong> ${escapeHtml(q.pc)}</span>
-            <span class="badge"><strong>Layer:</strong> PC Quest</span>
-        </div>
-        <div id="description">${q.description || "<em>No description.</em>"}</div>
-    `;
-}
-
-
-function showPOI(p) {
-    const category = categoryByName.get(p.category);
-    const faction = factionByName.get(p.faction);
-
-    const categoryIcon = category && category.icon
-        ? `<img src="${escapeAttr(category.icon)}" alt="${escapeAttr(p.category)}">`
-        : "◆";
-
-    const factionDot = faction
-        ? `<span class="faction-chip-dot" style="color:${escapeAttr(faction.color)}">●</span>`
-        : "";
-
-    detailsPane.innerHTML = `
-        <div class="player-title">${escapeHtml(DATA.title || "Campaign Map")}</div>
-        <div class="poi-header">
-            <div class="poi-header-icon">${categoryIcon}</div>
-            <div><h1>${escapeHtml(p.title)}</h1></div>
-        </div>
-        <div class="badge-row">
-            <span class="badge">${categoryIcon} <strong>Category:</strong> ${escapeHtml(p.category)}</span>
-            <span class="badge">${factionDot} <strong>Faction:</strong> ${escapeHtml(p.faction)}</span>
-        </div>
-        <div id="description">${p.description || "<em>No description.</em>"}</div>
-    `;
-}
-
-function stripHtml(value) {
-    const div = document.createElement("div");
-    div.innerHTML = value || "";
-    return div.textContent || div.innerText || "";
-}
-
-function escapeHtml(value) {
-    return String(value ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-}
-
-function escapeAttr(value) {
-    return escapeHtml(value).replaceAll("`", "&#096;");
-}
-
-poiSearch.addEventListener("input", () => {
-    renderPOIList();
-    updateMarkerVisibility();
-});
-
-renderLegend();
-populateFilters();
-renderTerritories();
-renderPartyLocation();
-renderPCQuests();
-renderPOIs();
-renderPOIList();
-if (DATA.party_location && DATA.party_location.visible !== false) {
-    const panelRect = mapPanel.getBoundingClientRect();
-    mapPanel.scrollLeft = DATA.party_location.x * zoom - panelRect.width / 2;
-    mapPanel.scrollTop = DATA.party_location.y * zoom - panelRect.height / 2;
-}
-applyZoom();
+const DATA = {"title": "Zuul.2.0 testing", "active_map_id": 1, "maps": [{"id": 1, "name": "Zuul", "parent_map_id": null, "mapWidth": 4000, "mapHeight": 5000, "mapImage": "assets/maps/map_1_Zuul.jpeg", "pois": [{"id": 1, "poi_id": 1, "title": "Old man rolf", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Elderly Harrengon fisherman<\/p>\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /><\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Friend of Laira<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Possible assasin<\/li><\/ul><\/body><\/html>", "category": "NPC", "faction": "Neutral", "linked_maps": [], "x": 2154.898403468757, "y": 1641.197309134186, "icon": "assets/icons/poi_1_Old_man_rolf_2.png", "category_icon": "assets/icons/category_NPC.png", "color": "#828282"}, {"id": 2, "poi_id": 4, "title": "Prince Jorbal", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:700;\">Merchant Prince - Seller of wilderness guides and sell swords<\/span><\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" font-weight:700;\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:400;\">Purchased Jade Statue from Silas<\/span><\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Likely in possession of Ptol's Necklace<\/li><\/ul><\/body><\/html>", "category": "NPC", "faction": "Neutral", "linked_maps": [], "x": 2050.57251983638, "y": 1299.650238721196, "icon": "assets/icons/category_NPC.png", "category_icon": "assets/icons/category_NPC.png", "color": "#828282"}, {"id": 3, "poi_id": 5, "title": "First Empire Tomb", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">30 miles west of redspine<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Originally explored by Naya<\/li><\/ul>\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /><\/p><\/body><\/html>", "category": "Dungeon", "faction": "Neutral", "linked_maps": [], "x": 2085.5777848710504, "y": 1493.9804555770686, "icon": "assets/icons/category_Dungeon.png", "category_icon": "assets/icons/category_Dungeon.png", "color": "#828282"}, {"id": 4, "poi_id": 6, "title": "Large Crater", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Three grubs mentioned a large crater east of Soshenstar<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Possibly gold in it<\/li><\/ul><\/body><\/html>", "category": "Location", "faction": "Neutral", "linked_maps": [], "x": 1975.7891525006714, "y": 1653.4455156882598, "icon": "assets/icons/category_Location.png", "category_icon": "assets/icons/category_Location.png", "color": "#828282"}, {"id": 5, "poi_id": 7, "title": "Pai-Sat Activity", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Rumors of a brilliant captain running routes to Refuge Bay, possibly Pai-Sat smuggling to Ghor Dranas<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Bounty hunter Zereni Briarfell said she was headed there to claim 7000g bounty<\/li><\/ul><\/body><\/html>", "category": "City", "faction": "Sea Kings", "linked_maps": [], "x": 2751.9113143372415, "y": 2453.668288925526, "icon": "assets/icons/category_City.png", "category_icon": "assets/icons/category_City.png", "color": "#0000ff"}, {"id": 6, "poi_id": 8, "title": "Supply route", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Recently stablized supply route to Ghor Dranas<\/p><\/body><\/html>", "category": "Danger", "faction": "Neutral", "linked_maps": [], "x": 2441.6054158366655, "y": 1724.8164878750854, "icon": "assets/icons/category_Danger.png", "category_icon": "assets/icons/category_Danger.png", "color": "#828282"}, {"id": 7, "poi_id": 9, "title": "Nassim", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Missionary of House of Ascending Light<\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Booze Hound, likes scotch<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Tension with Ratfuck<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Using pilgrims to provide labor to Ratley in exchange for lux<\/li><\/ul><\/body><\/html>", "category": "NPC", "faction": "Dragovar", "linked_maps": [], "x": 2156.5694643863267, "y": 1699.0675297323144, "icon": "assets/icons/category_NPC.png", "category_icon": "assets/icons/category_NPC.png", "color": "#f7f700"}, {"id": 8, "poi_id": 10, "title": "Camp Vengence", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:'Aptos','sans-serif'; font-size:12pt;\">A fortified military base deep in the jungle interior. It is miserable, muddy, and constantly attacked. <\/span><\/p>\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /><\/p>\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Greywolves fort<\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Manned by 30 men<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Lt Valen and Pvt. Desmond<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Worship Talos?<\/li><\/ul>\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /><\/p>\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /><\/p><\/body><\/html>", "category": "City", "faction": "Grey Wolves", "linked_maps": [], "x": 1583.114453190694, "y": 1863.1371890565117, "icon": "assets/icons/category_City.png", "category_icon": "assets/icons/category_City.png", "color": "#55aaff"}, {"id": 9, "poi_id": 11, "title": "FE Dungeon", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">80 miles south east of Three Trees<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Patrolled by Grung<\/li><\/ul><\/body><\/html>", "category": "Dungeon", "faction": "Neutral", "linked_maps": [], "x": 1845.0737506020687, "y": 1900.4078208020323, "icon": "assets/icons/category_Dungeon.png", "category_icon": "assets/icons/category_Dungeon.png", "color": "#828282"}, {"id": 10, "poi_id": 12, "title": "Corby (deeplantern guild)", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Frequents Cedar &amp; Smoke tavern<\/p><\/body><\/html>", "category": "NPC", "faction": "Neutral", "linked_maps": [], "x": 2234.840251134858, "y": 1484.9487363498458, "icon": "assets/icons/category_NPC.png", "category_icon": "assets/icons/category_NPC.png", "color": "#828282"}, {"id": 11, "poi_id": 13, "title": "Milo Yellowcrane", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Assessor<\/p><\/body><\/html>", "category": "NPC", "faction": "Dragovar", "linked_maps": [], "x": 2271.4182259132645, "y": 1482.2273886350936, "icon": "assets/icons/category_NPC.png", "category_icon": "assets/icons/category_NPC.png", "color": "#f7f700"}, {"id": 12, "poi_id": 14, "title": "Zindar", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Harbormaster of PNZ<\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Pai-Sat was there recently, skipped out on a loan, he may know<\/li><\/ul><\/body><\/html>", "category": "NPC", "faction": "Neutral", "linked_maps": [], "x": 2124.8945579506903, "y": 1256.1617328182992, "icon": "assets/icons/category_NPC.png", "category_icon": "assets/icons/category_NPC.png", "color": "#828282"}, {"id": 13, "poi_id": 15, "title": "Lt Valerius", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Guard Sgt<\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Drunk<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Recently had attacks on scout towers on eastern perimeter, thinks it could be Alliance<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Recently promoted to Lt.<\/li><\/ul><\/body><\/html>", "category": "NPC", "faction": "Dragovar", "linked_maps": [], "x": 2191.009244802183, "y": 1670.2425856095736, "icon": "assets/icons/category_NPC.png", "category_icon": "assets/icons/category_NPC.png", "color": "#f7f700"}, {"id": 14, "poi_id": 16, "title": "Attacks on eastern perimeter scout towers", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Forward scout towers on eastern perimeter attacked three times in past month, small raids<\/p><\/body><\/html>", "category": "Danger", "faction": "Horned alliance", "linked_maps": [], "x": 2086.324457985149, "y": 1671.4072877726637, "icon": "assets/icons/category_Danger.png", "category_icon": "assets/icons/category_Danger.png", "color": "#aa0000"}, {"id": 15, "poi_id": 17, "title": "Possible port city", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Spoken of by Ghordan Rhaiko and Denarion Morrow<\/p><\/body><\/html>", "category": "City", "faction": "Sea Kings", "linked_maps": [], "x": 902.7477393025765, "y": 2446.462239023854, "icon": "assets/icons/category_City.png", "category_icon": "assets/icons/category_City.png", "color": "#0000ff"}, {"id": 16, "poi_id": 18, "title": "Ratley", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Imperial Baron<\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Needs laborers<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Allows lux smuggling in exchange for labor from pilgrims<\/li><\/ul><\/body><\/html>", "category": "NPC", "faction": "Dragovar", "linked_maps": [], "x": 2191.8450513398666, "y": 1713.3961405088346, "icon": "assets/icons/category_NPC.png", "category_icon": "assets/icons/category_NPC.png", "color": "#f7f700"}, {"id": 17, "poi_id": 19, "title": "Yuan Ti Raids", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Seems to be a battle front between Empire and natives<\/p><\/body><\/html>", "category": "Danger", "faction": "Neutral", "linked_maps": [], "x": 2274.9364692542845, "y": 2046.1730448413523, "icon": "assets/icons/category_Danger.png", "category_icon": "assets/icons/category_Danger.png", "color": "#828282"}, {"id": 18, "poi_id": 20, "title": "Prince Kwayothe", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Merchant prince of ale, amberwine, oil, insect repellent. <\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Uses slave labor, works them to death<\/li><\/ul><\/body><\/html>", "category": "NPC", "faction": "Neutral", "linked_maps": [], "x": 2078.193826455577, "y": 1320.9699908177918, "icon": "assets/icons/category_NPC.png", "category_icon": "assets/icons/category_NPC.png", "color": "#828282"}, {"id": 19, "poi_id": 21, "title": "Baroness Dane", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Baroness of redspine<\/p><\/body><\/html>", "category": "NPC", "faction": "Dragovar", "linked_maps": [], "x": 2235.884900982528, "y": 1520.6714288287571, "icon": "assets/icons/category_NPC.png", "category_icon": "assets/icons/category_NPC.png", "color": "#f7f700"}, {"id": 20, "poi_id": 22, "title": "Arthur Vane", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Informant for Silas<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Sick child<\/li><\/ul>\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /><\/p><\/body><\/html>", "category": "NPC", "faction": "Neutral", "linked_maps": [], "x": 2298.641122977166, "y": 1516.5222571266322, "icon": "assets/icons/category_NPC.png", "category_icon": "assets/icons/category_NPC.png", "color": "#828282"}, {"id": 21, "poi_id": 23, "title": "Septima - Diviner", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">If the post office doesnt have send-a-grams, she could be a good bet for contacting alti<\/p><\/body><\/html>", "category": "NPC", "faction": "Neutral", "linked_maps": [], "x": 2105.057627366061, "y": 1635.2093136659132, "icon": "assets/icons/category_NPC.png", "category_icon": "assets/icons/category_NPC.png", "color": "#828282"}, {"id": 22, "poi_id": 24, "title": "New Hollowdark Entrance", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">New hollow dark entrance a few miles east of the mill.<\/p><\/body><\/html>", "category": "Dungeon", "faction": "Neutral", "linked_maps": [], "x": 2168.844208208522, "y": 1473.8579481026095, "icon": "assets/icons/category_Dungeon.png", "category_icon": "assets/icons/category_Dungeon.png", "color": "#828282"}, {"id": 23, "poi_id": 25, "title": "Port Nyanzaru (PNZ)", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:700;\">Population \u2013 <\/span>9,300<\/p>\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:700;\">Notable Locations<\/span><\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" font-weight:700;\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:400;\">Golden Throne \u2013 Seat of Governance<\/span><\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Gladiatorial arenas<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Bazaars<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Temples<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Circuses<\/li><\/ul>\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:700;\">Notable NPCs<\/span><\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" font-weight:700;\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:400;\">Zindar (Male Half-Dragon): Magic wielding Harbormaster. <\/span><\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Merchant Prince Ekene-Afa (Female Human): Seller of weapons and armor. <\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Merchant Prince Ifan Talro\u2019a (Male Human): Vendor of exotic animals and domesticated beasts. <\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Merchant Prince Jessamine (Female Human): Seller of plants, herbs, poison, and assassins. <\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Merchant Prince Jorbal (Male Human): Seller of wilderness guides and sellswords. <\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Merchant Prince Kwayothe (Female Half-Elf): Seller of ale, amberwine, oil, and insect repellant. <\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Merchant Prince Wakanga O\u2019tamu (Male Dragonborn): Deals in magic and lore. <\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Merchant Prince Zhanthi (Female Human): Trades in gems, jewlery, and cloth. <\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">High Fist Portyr (Female Dragonborn): Commander of Fort Belurian and highest-ranking member of the Claw on Zuul. <\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Inquisitor Vane (Male Dragonborn): Imperial Auditor. <\/li><\/ul><\/body><\/html>", "category": "City", "faction": "Dragovar", "linked_maps": [], "x": 2071.838977995508, "y": 1267.92237290268, "icon": "assets/icons/category_City.png", "category_icon": "assets/icons/category_City.png", "color": "#f7f700"}, {"id": 24, "poi_id": 26, "title": "Camp Righteous", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:'Aptos','sans-serif'; font-size:12pt;\">The empire\u2019s deepest stab into the island of Zuul. <\/span><\/p>\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-family:'Aptos','sans-serif'; font-size:12pt;\"><br /><\/p>\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:'Aptos','sans-serif'; font-size:12pt;\">~1 year ago, it was reported that Camp Righteous was overrun by hundreds of goblins and undead that came swarming out of the jungle<\/span><\/p><\/body><\/html>", "category": "Danger", "faction": "Grey Wolves", "linked_maps": [], "x": 1750.879110645295, "y": 1721.8946005365133, "icon": "assets/icons/category_Danger.png", "category_icon": "assets/icons/category_Danger.png", "color": "#55aaff"}, {"id": 25, "poi_id": 27, "title": "Redspine", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Empires 'Open Wound,' a massive logging colony carved our ot the dense wooded jungle. Supposedly a penal slave colony. Frequently attacked by Druid Colonies<\/p>\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /><\/p>\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:700;\">Notable Locations<\/span><\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" font-weight:700;\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:400;\">Cedar &amp; Smoke Tavern<\/span><\/li><\/ul>\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /><\/p>\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:700;\">Notable NPCs<\/span><\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" font-weight:700;\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:400;\">Baroness Dane \u2013 Ruler<\/span><\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Milo Yellowcrane \u2013 Assessor<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Corby \u2013 Deeplantern Guild<\/li><\/ul><\/body><\/html>", "category": "City", "faction": "Dragovar", "linked_maps": [], "x": 2208.3708089029205, "y": 1473.065575699558, "icon": "assets/icons/category_City.png", "category_icon": "assets/icons/category_City.png", "color": "#f7f700"}, {"id": 26, "poi_id": 28, "title": "Three Trees", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">The 'Last Handshake' with civilization.<\/p>\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /><\/p>\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:700;\">Notable locations<\/span><\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" font-weight:700;\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:400;\">The Talismen \u2013 Cheap Tavern<\/span><\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">The Broken Keel \u2013 Pricier Tavern<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Post Office<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">House of Ascending Light \u2013 Temple<\/li><\/ul>\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:700;\">Notable NPCs<\/span><\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Eamon Ratley (Male Dragonborn) \u2013 Imperial Provisioner and Baron<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Captain Van Der Hoven (Male Human) \u2013 Claw Captain<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Missionary Nassim (Male Dragonborn) \u2013 Head missionary at House of Ascending Light<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Madam Vess (Female Earth Genasi) \u2013 Proprietor of Lumber Camp<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Septima \u2013 Diviner<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Lt. Valerius \u2013 Guard Lt.<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Captain Morrow \u2013 Captain of Morrow's folly<\/li><\/ul><\/body><\/html>", "category": "City", "faction": "Dragovar", "linked_maps": [{"id": 2, "name": "Three Trees Region"}], "x": 2127.3522022394454, "y": 1671.9294284189982, "icon": "assets/icons/category_City.png", "category_icon": "assets/icons/category_City.png", "color": "#f7f700"}, {"id": 27, "poi_id": 29, "title": "Ghor Dranas", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Tip of the Imperial Spear, a massive wooden fortress. This is where Chult (ration paste) is farmed.<\/p>\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /><\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Frontline of the war between the Empire and Yuan-ti<\/li><\/ul><\/body><\/html>", "category": "City", "faction": "Dragovar", "linked_maps": [], "x": 2327.4436096053014, "y": 2053.085146131259, "icon": "assets/icons/category_City.png", "category_icon": "assets/icons/category_City.png", "color": "#f7f700"}], "pc_quests": [{"id": 1, "quest_id": 1, "title": "Diviner", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Possible NPC that could cast the sending spell to contact Altima<\/p><\/body><\/html>", "pc": "Laira", "x": 2101.661770639909, "y": 1624.2000882543116, "icon": "assets/icons/pc_Laira.png", "color": "#0bc3b7"}, {"id": 2, "quest_id": 2, "title": "Pai-Sat sighting", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Possible location where Pai-Sat was sighted<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Could be doing smuggling runs to Ghor Dranas<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Bounty Hunter Zereni Briarfell headed there to go after him<\/li><\/ul><\/body><\/html>", "pc": "Laira", "x": 2771.397186018396, "y": 2431.7972944298526, "icon": "assets/icons/pc_Laira.png", "color": "#0bc3b7"}, {"id": 3, "quest_id": 3, "title": "Portmaster, Pai-Sat sighting", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Last confirmed location of Pai-Sat was PNZ<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">He supposedly skipped out on a loan over here<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Harbor Master may have information<\/li><\/ul><\/body><\/html>", "pc": "Laira", "x": 2151.0145207208993, "y": 1237.6095631136695, "icon": "assets/icons/pc_Laira.png", "color": "#0bc3b7"}, {"id": 4, "quest_id": 4, "title": "Necklace?", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Jorbal seems to be a collector of artifacts, could be a good person to ask about Ptolemaius' necklace<\/li><\/ul><\/body><\/html>", "pc": "Ptolemaius", "x": 2042.0568787265456, "y": 1274.873059268213, "icon": "assets/icons/pc_Ptolemaius.png", "color": "#005500"}, {"id": 5, "quest_id": 5, "title": "Logging Colony", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Frequently attacked by Druids<\/p><\/body><\/html>", "pc": "Truffula", "x": 2215.7361367814183, "y": 1446.6731508016076, "icon": "assets/icons/pc_Truffula.png", "color": "#aaaaff"}], "territories": [{"id": 2, "title": "Deepsnake Territory", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Rumors of Secondary supply route to Ghor Dranas. Possibly Pai-Sat?<\/p><\/body><\/html>", "faction": "Hazard", "points": [[2655.749061140769, 2145.2933974409843], [2428.113427328703, 2059.7575835237235], [2352.2348827246806, 2204.616623222311], [2553.6579284008117, 2389.484350075746], [2568.833637321616, 2411.558108506007]], "centroid": [2511.717787383316, 2242.1420125537543], "color": "#ff5500", "fill": "rgba(255, 85, 0, 0.28)"}, {"id": 3, "title": "Possible Fire Newts", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Fire Newt sighting 20 miles from three trees<\/p><\/body><\/html>", "faction": "Hazard", "points": [[1978.4295798072299, 1746.7930772796792], [2258.9612567489853, 1773.0986391263941], [2238.567023416679, 1921.8565763738047], [1938.651827353351, 1888.266074414712]], "centroid": [2103.6524218315612, 1832.5035917986474], "color": "#ff5500", "fill": "rgba(255, 85, 0, 0.28)"}, {"id": 4, "title": "Horned Alliance and natives", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Anywhere past refuge bay is Alliance and natives<\/p><\/body><\/html>", "faction": "Horned alliance", "points": [[2820.7342725936774, 2487.7476775398472], [2719.3905262729463, 2644.5891897028832], [3341.9306822431504, 2924.490965255378], [3455.33916026873, 2738.6940970007045], [3040.3123896219277, 2654.240975066762], [3095.8101554642326, 2608.3949945883364], [3177.850331057205, 2613.220887270276]], "centroid": [3093.0525025031243, 2667.3398266320264], "color": "#aa0000", "fill": "rgba(170, 0, 0, 0.28)"}, {"id": 5, "title": "Synestragos Raiders", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /><\/p><\/body><\/html>", "faction": "Sea Kings", "points": [[2804.9958300847, 4853.695856153389], [3599.5850925319023, 4818.593519258131], [3216.650508219998, 4308.014073508925], [3021.992094528113, 4346.307531940116]], "centroid": [3160.805881341178, 4581.65274521514], "color": "#0000ff", "fill": "rgba(0, 0, 255, 0.28)"}, {"id": 6, "title": "Organized Pirate Activity", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Captain Razaan (independent) said southern coast is getting busy<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Raiko met in secret with Ratfuck and Vanderhoven about pirate called captain Mailos<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Empire might be sending shipping manifests to the pirates.<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Patterns in harrassment, looks like empire looking other way<\/li><\/ul><\/body><\/html>", "faction": "Sea Kings", "points": [[607.7171853029919, 3637.8625953554097], [1823.1515559089758, 4207.597456576965], [1477.090380944772, 4659.165087322938], [367.1624661205576, 4203.377198345694]], "centroid": [1068.7803970693244, 4177.000584400252], "color": "#0000ff", "fill": "rgba(0, 0, 255, 0.28)"}], "party_location": {"x": 2127.683597820768, "y": 1672.528455750252, "visible": true, "map_id": 1}}, {"id": 2, "name": "Three Trees Region", "parent_map_id": 1, "mapWidth": 864, "mapHeight": 854, "mapImage": "assets/maps/map_2_Three_Trees_Region.jpeg", "pois": [{"id": 30, "poi_id": 28, "title": "Three Trees", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">The 'Last Handshake' with civilization.<\/p>\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /><\/p>\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:700;\">Notable locations<\/span><\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" font-weight:700;\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:400;\">The Talismen \u2013 Cheap Tavern<\/span><\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">The Broken Keel \u2013 Pricier Tavern<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Post Office<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">House of Ascending Light \u2013 Temple<\/li><\/ul>\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:700;\">Notable NPCs<\/span><\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Eamon Ratley (Male Dragonborn) \u2013 Imperial Provisioner and Baron<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Captain Van Der Hoven (Male Human) \u2013 Claw Captain<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Missionary Nassim (Male Dragonborn) \u2013 Head missionary at House of Ascending Light<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Madam Vess (Female Earth Genasi) \u2013 Proprietor of Lumber Camp<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Septima \u2013 Diviner<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Lt. Valerius \u2013 Guard Lt.<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Captain Morrow \u2013 Captain of Morrow's folly<\/li><\/ul><\/body><\/html>", "category": "City", "faction": "Dragovar", "linked_maps": [], "x": 436.39119963997996, "y": 408.1074812770006, "icon": "assets/icons/category_City.png", "category_icon": "assets/icons/category_City.png", "color": "#f7f700"}, {"id": 31, "poi_id": 1, "title": "Old man rolf", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Elderly Harrengon fisherman<\/p>\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /><\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Friend of Laira<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Possible assasin<\/li><\/ul><\/body><\/html>", "category": "NPC", "faction": "Neutral", "linked_maps": [], "x": 473.23971986406195, "y": 419.6401893477457, "icon": "assets/icons/poi_1_Old_man_rolf.png", "category_icon": "assets/icons/category_NPC.png", "color": "#828282"}, {"id": 32, "poi_id": 18, "title": "Ratley", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Imperial Baron<\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Needs laborers<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Allows lux smuggling in exchange for labor from pilgrims<\/li><\/ul><\/body><\/html>", "category": "NPC", "faction": "Dragovar", "linked_maps": [], "x": 446.8717793876139, "y": 447.80490758418745, "icon": "assets/icons/category_NPC.png", "category_icon": "assets/icons/category_NPC.png", "color": "#f7f700"}, {"id": 33, "poi_id": 9, "title": "Nassim", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Missionary of House of Ascending Light<\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Booze Hound, likes scotch<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Tension with Ratfuck<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Using pilgrims to provide labor to Ratley in exchange for lux<\/li><\/ul><\/body><\/html>", "category": "NPC", "faction": "Dragovar", "linked_maps": [], "x": 404.93253551557564, "y": 445.7263158036658, "icon": "assets/icons/category_NPC.png", "category_icon": "assets/icons/category_NPC.png", "color": "#f7f700"}, {"id": 34, "poi_id": 15, "title": "Lt Valerius", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Guard Sgt<\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Drunk<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Recently had attacks on scout towers on eastern perimeter, thinks it could be Alliance<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Recently promoted to Lt.<\/li><\/ul><\/body><\/html>", "category": "NPC", "faction": "Dragovar", "linked_maps": [], "x": 408.342520860277, "y": 376.6475537020801, "icon": "assets/icons/category_NPC.png", "category_icon": "assets/icons/category_NPC.png", "color": "#f7f700"}, {"id": 35, "poi_id": 23, "title": "Septima - Diviner", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">If the post office doesnt have send-a-grams, she could be a good bet for contacting alti<\/p><\/body><\/html>", "category": "NPC", "faction": "Neutral", "linked_maps": [], "x": 463.0008727238986, "y": 371.7155125372601, "icon": "assets/icons/category_NPC.png", "category_icon": "assets/icons/category_NPC.png", "color": "#828282"}, {"id": 36, "poi_id": 16, "title": "Attacks on eastern perimeter scout towers", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Forward scout towers on eastern perimeter attacked three times in past month, small raids<\/p><\/body><\/html>", "category": "Danger", "faction": "Horned alliance", "linked_maps": [], "x": 381.814119001976, "y": 412.0653381529598, "icon": "assets/icons/category_Danger.png", "category_icon": "assets/icons/category_Danger.png", "color": "#aa0000"}, {"id": 37, "poi_id": 6, "title": "Large Crater", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Three grubs mentioned a large crater east of Soshenstar<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Possibly gold in it<\/li><\/ul><\/body><\/html>", "category": "Location", "faction": "Neutral", "linked_maps": [], "x": 168.0194122339712, "y": 360.50039597875883, "icon": "assets/icons/category_Location.png", "category_icon": "assets/icons/category_Location.png", "color": "#828282"}, {"id": 38, "poi_id": 5, "title": "First Empire Tomb", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">30 miles west of redspine<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Originally explored by Naya<\/li><\/ul>\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /><\/p><\/body><\/html>", "category": "Dungeon", "faction": "Neutral", "linked_maps": [], "x": 340.88220181771953, "y": 57.92617528473005, "icon": "assets/icons/category_Dungeon.png", "category_icon": "assets/icons/category_Dungeon.png", "color": "#828282"}, {"id": 39, "poi_id": 27, "title": "Redspine", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Empires 'Open Wound,' a massive logging colony carved our ot the dense wooded jungle. Supposedly a penal slave colony. Frequently attacked by Druid Colonies<\/p>\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /><\/p>\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:700;\">Notable Locations<\/span><\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" font-weight:700;\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:400;\">Cedar &amp; Smoke Tavern<\/span><\/li><\/ul>\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /><\/p>\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:700;\">Notable NPCs<\/span><\/p>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\">\n<li style=\" font-weight:700;\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:400;\">Baroness Dane \u2013 Ruler<\/span><\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Milo Yellowcrane \u2013 Assessor<\/li>\n<li style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Corby \u2013 Deeplantern Guild<\/li><\/ul><\/body><\/html>", "category": "City", "faction": "Dragovar", "linked_maps": [], "x": 597.8000000000001, "y": 15.00270270270272, "icon": "assets/icons/category_City.png", "category_icon": "assets/icons/category_City.png", "color": "#f7f700"}], "pc_quests": [{"id": 6, "quest_id": 1, "title": "Diviner", "description": "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\nhr { height: 1px; border-width: 0; }\nli.unchecked::marker { content: \"\\2610\"; }\nli.checked::marker { content: \"\\2612\"; }\n<\/style><\/head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Possible NPC that could cast the sending spell to contact Altima<\/p><\/body><\/html>", "pc": "Laira", "x": 460.4675675675676, "y": 353.14054054054054, "icon": "assets/icons/pc_Laira.png", "color": "#0bc3b7"}], "territories": [], "party_location": null}], "categories": [{"name": "City", "icon": "assets/icons/category_City.png"}, {"name": "Danger", "icon": "assets/icons/category_Danger.png"}, {"name": "Dungeon", "icon": "assets/icons/category_Dungeon.png"}, {"name": "Location", "icon": "assets/icons/category_Location.png"}, {"name": "NPC", "icon": "assets/icons/category_NPC.png"}, {"name": "Quest", "icon": "assets/icons/category_Quest.png"}, {"name": "Secret", "icon": "assets/icons/category_Secret.png"}], "factions": [{"name": "Dragovar", "color": "#f7f700"}, {"name": "Grey Wolves", "color": "#55aaff"}, {"name": "Hazard", "color": "#ff5500"}, {"name": "Horned alliance", "color": "#aa0000"}, {"name": "Neutral", "color": "#828282"}, {"name": "Party", "color": "#00ff00"}, {"name": "Sea Kings", "color": "#0000ff"}]};
+const mapPanel=document.getElementById("mapPanel"), zoomStage=document.getElementById("zoomStage"), mapImg=document.getElementById("mapImg"), mapWrap=document.getElementById("mapWrap"), territorySvg=document.getElementById("territorySvg");
+const detailsPane=document.getElementById("detailsPane"), infoPanel=document.getElementById("infoPanel"), toggleSidebarButton=document.getElementById("toggleSidebarButton"), mapLegend=document.getElementById("mapLegend"), toggleLegendButton=document.getElementById("toggleLegendButton"), zoomLabel=document.getElementById("zoomLabel");
+const categoryLegend=document.getElementById("categoryLegend"), factionLegend=document.getElementById("factionLegend"), poiSearch=document.getElementById("poiSearch"), mapSelector=document.getElementById("mapSelector"), upLayerButton=document.getElementById("upLayerButton");
+const categoryFilterDropdown=document.getElementById("categoryFilterDropdown"), categoryFilterButton=document.getElementById("categoryFilterButton"), categoryFilterMenu=document.getElementById("categoryFilterMenu");
+const factionFilterDropdown=document.getElementById("factionFilterDropdown"), factionFilterButton=document.getElementById("factionFilterButton"), factionFilterMenu=document.getElementById("factionFilterMenu");
+const poiList=document.getElementById("poiList"), poiCount=document.getElementById("poiCount");
+const PC_QUEST_CATEGORY="PC Quests";
+let activeMapId=DATA.active_map_id || (DATA.maps[0] && DATA.maps[0].id), activeMap=null, zoom=1.0, dragging=false, dragStartX=0, dragStartY=0, scrollStartLeft=0, scrollStartTop=0, selectedItemKey=null, sidebarCollapsed=false, legendCollapsed=false;
+const markerById=new Map(), pcQuestMarkerById=new Map(), categoryByName=new Map(DATA.categories.map(c=>[c.name,c])), factionByName=new Map(DATA.factions.map(f=>[f.name,f]));
+function currentMap(){return DATA.maps.find(m=>m.id===activeMapId)||DATA.maps[0]}
+function pctX(x){return (x/activeMap.mapWidth*100).toFixed(5)+"%"} function pctY(y){return (y/activeMap.mapHeight*100).toFixed(5)+"%"}
+function clearMapLayers(){markerById.clear();pcQuestMarkerById.clear();[...mapWrap.querySelectorAll(".poi,.pc-quest,.party-location,.territory-label")].forEach(el=>el.remove());territorySvg.innerHTML=""}
+function loadMap(mapId){activeMapId=Number(mapId);activeMap=currentMap();selectedItemKey=null;clearMapLayers();mapImg.src=activeMap.mapImage;const padX=activeMap.mapWidth*.20,padY=activeMap.mapHeight*.20;activeMap.panPadX=padX;activeMap.panPadY=padY;zoomStage.style.width=(activeMap.mapWidth+padX*2)+"px";zoomStage.style.height=(activeMap.mapHeight+padY*2)+"px";mapWrap.style.left=padX+"px";mapWrap.style.top=padY+"px";mapWrap.style.width=activeMap.mapWidth+"px";mapWrap.style.height=activeMap.mapHeight+"px";territorySvg.setAttribute("viewBox",`0 0 ${activeMap.mapWidth} ${activeMap.mapHeight}`);renderTerritories();renderPartyLocation();renderPCQuests();renderPOIs();renderPOIList();showMapInfo();resetZoom();centerOnPartyOrMiddle();mapSelector.value=String(activeMap.id);updateUpLayerButton()}
+function updateUpLayerButton(){if(!activeMap||!activeMap.parent_map_id){upLayerButton.disabled=true;upLayerButton.textContent="Up";upLayerButton.title="This map has no parent map"}else{const parent=DATA.maps.find(m=>m.id===activeMap.parent_map_id);upLayerButton.disabled=false;upLayerButton.textContent="Up";upLayerButton.title=parent?`Open parent map: ${parent.name}`:"Open parent map"}}
+function goUpOneLayer(){if(activeMap&&activeMap.parent_map_id){loadMap(activeMap.parent_map_id)}}
+function centerOnPartyOrMiddle(){const r=mapPanel.getBoundingClientRect(),padX=activeMap.panPadX||activeMap.mapWidth*.20,padY=activeMap.panPadY||activeMap.mapHeight*.20;if(activeMap.party_location&&activeMap.party_location.visible!==false){mapPanel.scrollLeft=(activeMap.party_location.x+padX)*zoom-r.width/2;mapPanel.scrollTop=(activeMap.party_location.y+padY)*zoom-r.height/2}else{mapPanel.scrollLeft=(activeMap.mapWidth/2+padX)*zoom-r.width/2;mapPanel.scrollTop=(activeMap.mapHeight/2+padY)*zoom-r.height/2}}
+function mapDepth(map){let depth=0,current=map,seen=new Set();while(current&&current.parent_map_id&&!seen.has(current.parent_map_id)){seen.add(current.parent_map_id);const parent=DATA.maps.find(m=>m.id===current.parent_map_id);if(!parent)break;depth++;current=parent}return depth}
+function setupMapSelector(){DATA.maps.forEach(m=>{const opt=document.createElement("option");opt.value=String(m.id);opt.textContent=`${"— ".repeat(mapDepth(m))}${m.name}`;mapSelector.appendChild(opt)});mapSelector.addEventListener("change",()=>loadMap(Number(mapSelector.value)))}
+function applyZoom(anchorClientX=null,anchorClientY=null,previousZoom=zoom){let ax=null,ay=null;if(anchorClientX!==null){const r=mapPanel.getBoundingClientRect();ax=(mapPanel.scrollLeft+anchorClientX-r.left)/previousZoom;ay=(mapPanel.scrollTop+anchorClientY-r.top)/previousZoom}const padX=activeMap.panPadX||activeMap.mapWidth*.20,padY=activeMap.panPadY||activeMap.mapHeight*.20;mapWrap.style.transform=`scale(${zoom})`;mapWrap.style.left=(padX*zoom)+"px";mapWrap.style.top=(padY*zoom)+"px";zoomStage.style.width=((activeMap.mapWidth+padX*2)*zoom)+"px";zoomStage.style.height=((activeMap.mapHeight+padY*2)*zoom)+"px";zoomLabel.textContent=Math.round(zoom*100)+"%";if(ax!==null){const r=mapPanel.getBoundingClientRect();mapPanel.scrollLeft=ax*zoom-(anchorClientX-r.left);mapPanel.scrollTop=ay*zoom-(anchorClientY-r.top)}}
+function zoomBy(factor){const prev=zoom;zoom=Math.min(4,Math.max(.35,zoom*factor));applyZoom(mapPanel.getBoundingClientRect().left+mapPanel.clientWidth/2,mapPanel.getBoundingClientRect().top+mapPanel.clientHeight/2,prev)}
+function resetZoom(){zoom=1;applyZoom()}
+function toggleSidebar(){sidebarCollapsed=!sidebarCollapsed;infoPanel.classList.toggle("collapsed",sidebarCollapsed);toggleSidebarButton.textContent=sidebarCollapsed?"Show Sidebar":"Hide Sidebar"}
+function toggleLegend(){legendCollapsed=!legendCollapsed;mapLegend.classList.toggle("hidden",legendCollapsed);toggleLegendButton.textContent=legendCollapsed?"Show Legend":"Hide Legend"}
+mapPanel.addEventListener("wheel",e=>{e.preventDefault();const prev=zoom;zoom=Math.min(4,Math.max(.35,zoom*(e.deltaY<0?1.12:1/1.12)));applyZoom(e.clientX,e.clientY,prev)},{passive:false});
+mapPanel.addEventListener("mousedown",e=>{if(e.button!==0)return;dragging=true;mapPanel.classList.add("dragging");dragStartX=e.clientX;dragStartY=e.clientY;scrollStartLeft=mapPanel.scrollLeft;scrollStartTop=mapPanel.scrollTop});
+window.addEventListener("mousemove",e=>{if(!dragging)return;mapPanel.scrollLeft=scrollStartLeft-(e.clientX-dragStartX);mapPanel.scrollTop=scrollStartTop-(e.clientY-dragStartY)});
+window.addEventListener("mouseup",()=>{dragging=false;mapPanel.classList.remove("dragging")});
+function setupMultiFilter(dropdown,button,menu,title,values){menu.innerHTML="";const actions=document.createElement("div");actions.className="filter-menu-actions";const sel=document.createElement("button"), desel=document.createElement("button");sel.type=desel.type="button";sel.textContent="Select All";desel.textContent="Deselect All";actions.append(sel,desel);menu.appendChild(actions);values.forEach(value=>{const label=document.createElement("label");label.className="filter-option";const cb=document.createElement("input");cb.type="checkbox";cb.value=value;cb.checked=true;cb.addEventListener("change",()=>{updateFilterButtonLabel(button,title,menu);renderPOIList();updateMarkerVisibility()});label.append(cb,document.createTextNode(value));menu.appendChild(label)});const close=document.createElement("button");close.type="button";close.className="filter-close";close.textContent="Close";close.addEventListener("click",()=>dropdown.classList.remove("open"));menu.appendChild(close);sel.addEventListener("click",e=>{e.stopPropagation();menu.querySelectorAll("input").forEach(cb=>cb.checked=true);updateFilterButtonLabel(button,title,menu);renderPOIList();updateMarkerVisibility()});desel.addEventListener("click",e=>{e.stopPropagation();menu.querySelectorAll("input").forEach(cb=>cb.checked=false);updateFilterButtonLabel(button,title,menu);renderPOIList();updateMarkerVisibility()});button.addEventListener("click",e=>{e.stopPropagation();document.querySelectorAll(".filter-dropdown.open").forEach(d=>{if(d!==dropdown)d.classList.remove("open")});dropdown.classList.toggle("open")});menu.addEventListener("click",e=>e.stopPropagation());updateFilterButtonLabel(button,title,menu)}
+function updateFilterButtonLabel(button,title,menu){const boxes=[...menu.querySelectorAll("input")], checked=boxes.filter(cb=>cb.checked);button.textContent=!boxes.length||!checked.length?`${title}: None`:checked.length===boxes.length?`${title}: All`:checked.length===1?`${title}: ${checked[0].value}`:`${title}: ${checked.length} selected`}
+function checkedFilterValues(menu){return new Set([...menu.querySelectorAll("input:checked")].map(cb=>cb.value))}
+function populateFilters(){setupMultiFilter(categoryFilterDropdown,categoryFilterButton,categoryFilterMenu,"Categories",[...DATA.categories.map(c=>c.name),PC_QUEST_CATEGORY]);setupMultiFilter(factionFilterDropdown,factionFilterButton,factionFilterMenu,"Factions",DATA.factions.map(f=>f.name))}
+document.addEventListener("click",()=>document.querySelectorAll(".filter-dropdown.open").forEach(d=>d.classList.remove("open")));
+function renderLegend(){categoryLegend.innerHTML="";factionLegend.innerHTML="";DATA.categories.forEach(c=>{const item=document.createElement("div");item.className="legend-item";item.innerHTML=(c.icon?`<img class="legend-icon" src="${escapeAttr(c.icon)}">`:"◆")+`<span>${escapeHtml(c.name)}</span>`;categoryLegend.appendChild(item)});DATA.factions.forEach(f=>{const item=document.createElement("div");item.className="legend-item";item.innerHTML=`<span class="color-dot" style="color:${escapeAttr(f.color)}">●</span><span>${escapeHtml(f.name)}</span>`;factionLegend.appendChild(item)})}
+function renderTerritories(){activeMap.territories.forEach(t=>{const poly=document.createElementNS("http://www.w3.org/2000/svg","polygon");poly.setAttribute("points",t.points.map(p=>`${p[0]},${p[1]}`).join(" "));poly.setAttribute("fill",t.fill);poly.setAttribute("stroke",t.color);poly.setAttribute("stroke-width","2");territorySvg.appendChild(poly);const label=document.createElement("div");label.className="territory-label";label.style.left=pctX(t.centroid[0]);label.style.top=pctY(t.centroid[1]);label.innerHTML=`${escapeHtml(t.title)}<br><span style="font-weight:500">${escapeHtml(t.faction)}</span>`;mapWrap.appendChild(label)})}
+function renderPartyLocation(){if(!activeMap.party_location||activeMap.party_location.visible===false)return;const marker=document.createElement("div");marker.className="party-location";marker.title="Party Location";marker.style.left=pctX(activeMap.party_location.x);marker.style.top=pctY(activeMap.party_location.y);mapWrap.appendChild(marker)}
+function renderPOIs(){activeMap.pois.forEach(p=>{const marker=document.createElement("button");marker.className="poi";marker.dataset.poiId=p.id;marker.style.left=pctX(p.x);marker.style.top=pctY(p.y);marker.style.background=p.color;marker.title=`${p.title}
+${p.category} | ${p.faction}`;const inner=document.createElement("span");inner.className="poi-inner";if(p.icon){const img=document.createElement("img");img.src=p.icon;img.alt=p.category;inner.appendChild(img)}else inner.textContent="◆";marker.appendChild(inner);if(Array.isArray(p.linked_maps)&&p.linked_maps.length){const badge=document.createElement("span");badge.className="linked-map-badge";badge.textContent="↗";badge.title=p.linked_maps.length===1?`Linked map: ${p.linked_maps[0].name}`:`${p.linked_maps.length} linked maps`;marker.appendChild(badge)}marker.addEventListener("click",()=>selectPOI(p,true));markerById.set(p.id,marker);mapWrap.appendChild(marker)})}
+function renderPCQuests(){activeMap.pc_quests.forEach(q=>{const marker=document.createElement("button");marker.className="pc-quest";marker.dataset.pcQuestId=q.id;marker.style.left=pctX(q.x);marker.style.top=pctY(q.y);marker.title=`${q.title}\nPC Quest | ${q.pc}`;const pin=document.createElement("span");pin.className="pc-quest-pin";const shape=document.createElement("span");shape.className="pc-quest-shape";shape.style.background=q.color;const icon=document.createElement("span");icon.className="pc-quest-icon";if(q.icon){const img=document.createElement("img");img.src=q.icon;img.alt=q.pc;icon.appendChild(img)}else icon.textContent="PC";pin.append(shape,icon);marker.appendChild(pin);marker.addEventListener("click",()=>selectPCQuest(q,true));pcQuestMarkerById.set(q.id,marker);mapWrap.appendChild(marker)})}
+function filteredPOIs(){const s=poiSearch.value.trim().toLowerCase(), cats=checkedFilterValues(categoryFilterMenu), facs=checkedFilterValues(factionFilterMenu);return activeMap.pois.filter(p=>{const h=`${p.title} ${stripHtml(p.description||"")} ${p.category} ${p.faction}`.toLowerCase();return (!s||h.includes(s))&&cats.has(p.category)&&facs.has(p.faction)})}
+function filteredPCQuests(){const s=poiSearch.value.trim().toLowerCase(), cats=checkedFilterValues(categoryFilterMenu);if(!cats.has(PC_QUEST_CATEGORY))return[];return activeMap.pc_quests.filter(q=>{const h=`${q.title} ${stripHtml(q.description||"")} ${q.pc} PC Quest`.toLowerCase();return !s||h.includes(s)})}
+function updateMarkerVisibility(){const vp=new Set(filteredPOIs().map(p=>p.id));markerById.forEach((m,id)=>m.style.display=vp.has(id)?"":"none");const vq=new Set(filteredPCQuests().map(q=>q.id));pcQuestMarkerById.forEach((m,id)=>m.style.display=vq.has(id)?"":"none")}
+function renderPOIList(){const pois=filteredPOIs(), quests=filteredPCQuests();poiList.innerHTML="";pois.forEach(p=>{const faction=factionByName.get(p.faction);const icon=p.icon?`<img class="poi-list-main-img" src="${escapeAttr(p.icon)}">`:"◆";const dot=faction?`<span class="faction-chip-dot" style="color:${escapeAttr(faction.color)}">●</span>`:"";const item=document.createElement("div");item.className="poi-list-item"+(selectedItemKey===`poi:${p.id}`?" active":"");item.innerHTML=`<div class="poi-list-icon" style="background:${escapeAttr(p.color)}"><div class="poi-list-icon-inner">${icon}</div></div><div><span class="poi-list-title">${escapeHtml(p.title)}</span><div class="poi-list-meta"><span class="list-tag">${escapeHtml(p.category)}</span><span class="list-tag">${dot} ${escapeHtml(p.faction)}</span></div></div>`;item.addEventListener("click",()=>selectPOI(p,true));poiList.appendChild(item)});if(quests.length){if(pois.length){const spacer=document.createElement("div");spacer.className="poi-list-spacer";poiList.appendChild(spacer)}const header=document.createElement("div");header.className="poi-list-header";header.textContent="PC Quest Markers";poiList.appendChild(header);quests.forEach(q=>{const icon=q.icon?`<img class="poi-list-main-img" src="${escapeAttr(q.icon)}">`:"PC";const item=document.createElement("div");item.className="poi-list-item"+(selectedItemKey===`quest:${q.id}`?" active":"");item.innerHTML=`<div class="poi-list-icon" style="background:${escapeAttr(q.color)}"><div class="poi-list-icon-inner">${icon}</div></div><div><span class="poi-list-title">${escapeHtml(q.pc)} - ${escapeHtml(q.title)}</span><div class="poi-list-meta"><span class="list-tag"><span class="faction-chip-dot" style="color:${escapeAttr(q.color)}">●</span> PC Quest</span></div></div>`;item.addEventListener("click",()=>selectPCQuest(q,true));poiList.appendChild(item)})}poiCount.textContent=`${pois.length}/${activeMap.pois.length} POIs; ${quests.length}/${activeMap.pc_quests.length} PC quests`;updateMarkerVisibility()}
+function selectPOI(p,center=false){selectedItemKey=`poi:${p.id}`;markerById.forEach(m=>m.classList.remove("selected"));pcQuestMarkerById.forEach(m=>m.classList.remove("selected"));const marker=markerById.get(p.id);if(marker)marker.classList.add("selected");showPOI(p);renderPOIList();if(center)centerOn(p.x,p.y)}
+function selectPCQuest(q,center=false){selectedItemKey=`quest:${q.id}`;markerById.forEach(m=>m.classList.remove("selected"));pcQuestMarkerById.forEach(m=>m.classList.remove("selected"));const marker=pcQuestMarkerById.get(q.id);if(marker)marker.classList.add("selected");showPCQuest(q);renderPOIList();if(center)centerOn(q.x,q.y)}
+function centerOn(x,y){const r=mapPanel.getBoundingClientRect(),padX=activeMap.panPadX||activeMap.mapWidth*.20,padY=activeMap.panPadY||activeMap.mapHeight*.20;mapPanel.scrollLeft=(x+padX)*zoom-r.width/2;mapPanel.scrollTop=(y+padY)*zoom-r.height/2}
+function showMapInfo(){detailsPane.innerHTML=`<div class="player-title">${escapeHtml(DATA.title||"Campaign Atlas")}</div><h1>${escapeHtml(activeMap.name)}</h1><p>${activeMap.pois.length} POIs, ${activeMap.pc_quests.length} PC Quest markers, ${activeMap.territories.length} territories.</p>`}
+function showPOI(p){const faction=factionByName.get(p.faction);const icon=p.icon?`<img src="${escapeAttr(p.icon)}" alt="${escapeAttr(p.title)}">`:"◆";const categoryIcon=p.category_icon?`<img src="${escapeAttr(p.category_icon)}" alt="${escapeAttr(p.category)}">`:"◆";const dot=faction?`<span class="faction-chip-dot" style="color:${escapeAttr(faction.color)}">●</span>`:"";const linked=(Array.isArray(p.linked_maps)&&p.linked_maps.length)?p.linked_maps.map(linkedMap=>`<button onclick="openLinkedMap(${Number(linkedMap.id)})">Open ${escapeHtml(linkedMap.name||"Map")}</button>`).join(" "):"";detailsPane.innerHTML=`<div class="player-title">${escapeHtml(DATA.title||"Campaign Atlas")}</div><div class="poi-header"><div class="poi-header-icon">${icon}</div><div><h1>${escapeHtml(p.title)}</h1></div></div><div class="badge-row"><span class="badge">${categoryIcon} <strong>Category:</strong> ${escapeHtml(p.category)}</span><span class="badge">${dot} <strong>Faction:</strong> ${escapeHtml(p.faction)}</span>${linked}</div><div id="description">${p.description||"<em>No description.</em>"}</div>`}
+function openLinkedMap(mapId){if(DATA.maps.some(m=>m.id===mapId))loadMap(mapId)}
+function showPCQuest(q){const icon=q.icon?`<img src="${escapeAttr(q.icon)}" alt="${escapeAttr(q.pc)}">`:"PC";detailsPane.innerHTML=`<div class="player-title">${escapeHtml(DATA.title||"Campaign Atlas")}</div><div class="poi-header"><div class="poi-header-icon">${icon}</div><div><h1>${escapeHtml(q.title)}</h1></div></div><div class="badge-row"><span class="badge"><span class="faction-chip-dot" style="color:${escapeAttr(q.color)}">●</span> <strong>PC:</strong> ${escapeHtml(q.pc)}</span><span class="badge"><strong>Layer:</strong> PC Quest</span></div><div id="description">${q.description||"<em>No description.</em>"}</div>`}
+function stripHtml(v){const d=document.createElement("div");d.innerHTML=v||"";return d.textContent||d.innerText||""}
+function escapeHtml(v){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}
+function escapeAttr(v){return escapeHtml(v).replaceAll("`","&#096;")}
+poiSearch.addEventListener("input",()=>{renderPOIList();updateMarkerVisibility()});
+upLayerButton.addEventListener("click",goUpOneLayer);
+renderLegend();setupMapSelector();populateFilters();loadMap(activeMapId);
 </script>
 </body>
 </html>
